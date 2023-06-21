@@ -2,6 +2,7 @@ import lightning.pytorch as pl
 from data.dataset import MeshDataset
 from torch_geometric.loader import DataLoader
 
+from model.normalization import get_stats
 
 class MeshDataModule(pl.LightningDataModule):
     def __init__(self,
@@ -22,10 +23,6 @@ class MeshDataModule(pl.LightningDataModule):
         
         self.train_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.history, split="train")
         self.valid_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.history, split="valid")
-
-    def transfer_batch_to_device(self, batch, device, dataloader_idx: int):
-        batch = batch.to(device)
-        return batch
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, num_workers=8)
