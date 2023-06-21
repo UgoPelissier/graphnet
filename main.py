@@ -1,6 +1,6 @@
 from data.datamodule import MeshDataModule
-# from model.module import MGNModule
-from lightning.pytorch.demos.boring_classes import DemoModel
+from model.module import MeshGraphNet
+
 from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
 
 import warnings
@@ -37,18 +37,15 @@ class MyLightningCLI(LightningCLI):
                 "data.batch_size_train": 1,
                 "data.batch_size_valid": 1,
 
-                # "model.field": "velocity",
-                # "model.node_feat_size": 2,
-                # "model.edge_feat_size": 3,
-                # "model.latent_size": 128,
-                # "model.output_feat_size": 2,
-                # "model.num_layers": 2,
-                # "model.message_passing_steps": 15,
-                # "model.lr": 1e-3,
-                # "model.noise_scale": 0.02,
-                # "model.noise_gamma": 1.0,
-                # "model.decay_rate": 0.95,
-                # "model.accumulate_step_size": 4, 
+                "model.path": "/home/eleve05/safran/graphnet/",
+                "model.dataset": "/home/eleve05/safran/graphnet/data/",
+                "model.logs": "/home/eleve05/safran/graphnet/logs/",
+                "model.num_layers": 1,
+                "model.input_dim_node": 1,
+                "model.input_dim_edge": 1,
+                "model.hidden_dim": 1,
+                "model.output_dim": 1,
+                "model.optimizer": "torch.optim.AdamW",
 
                 "trainer.max_epochs": 100,
                 "trainer.accelerator": "gpu",
@@ -60,7 +57,7 @@ class MyLightningCLI(LightningCLI):
 
 if __name__ == '__main__':
     cli = MyLightningCLI(
-        model_class=DemoModel,
+        model_class=MeshGraphNet,
         datamodule_class=MeshDataModule,
         seed_everything_default=42,
     )
