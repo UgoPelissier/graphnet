@@ -51,9 +51,9 @@ def get_stats(data_list: List[Data]) -> List[torch.Tensor]:
         std_vec_edge += torch.sum(dp.edge_attr**2,dim=0)
         num_accs_edge += dp.edge_attr.shape[0]
 
-        mean_vec_y +=torch.sum(dp.y,dim=0)
-        std_vec_y +=torch.sum(dp.y**2,dim=0)
-        num_accs_y +=dp.y.shape[0]
+        mean_vec_y += torch.sum(dp.y,dim=0)
+        std_vec_y += torch.sum(dp.y**2,dim=0)
+        num_accs_y += dp.y.shape[0]
 
         if(num_accs_x > max_accumulations or num_accs_edge > max_accumulations or num_accs_y > max_accumulations):
             break
