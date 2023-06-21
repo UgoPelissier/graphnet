@@ -1,7 +1,7 @@
 from typing import Optional
-import numpy as np
+import os.path as osp
 
-from model.normalization import normalize, unnormalize, get_stats
+from model.normalization import normalize, unnormalize
 from model.processor import ProcessorLayer
 
 import torch
@@ -65,15 +65,24 @@ class MeshGraphNet(pl.LightningModule):
     def build_processor_model(self):
         return ProcessorLayer
 
-    def forward(self, data: Data, mean_vec_x: float, std_vec_x: float, mean_vec_edge: float, std_vec_edge: float):
+    def forward(self, data: Data, split: str):
         """
         Encoder encodes graph (node/edge features) into latent vectors (node/edge embeddings)
         The return of processor is fed into the processor for generating new feature vectors
         """
         x, edge_index, edge_attr, pressure = data.x, data.edge_index, data.edge_attr, data.p
 
-        x = normalize(x, mean_vec_x, std_vec_x)
-        edge_attr = normalize(edge_attr, mean_vec_edge, std_vec_edge)
+        if split == 'train':
+            x = normalize(x, self.mean_vec_x_train, self.std_vec_x_train)
+            edge_attr = normalize(edge_attr, self.mean_vec_edge_train, self.std_vec_edge_train)
+        elif split == 'val':
+            x = normalize(x, self.mean_vec_x_val, self.std_vec_x_val)
+            edge_attr = normalize(edge_attr, self.mean_vec_edge_val, self.std_vec_edge_val)
+        elif split == 'test':
+            x = normalize(x, self.mean_vec_x_test, self.std_vec_x_test) # type: ignore
+            edge_attr = normalize(edge_attr, self.mean_vec_edge_test, self.std_vec_edge_test) # type: ignore
+        else:
+            raise ValueError('Invalid split name')
 
         # Step 1: encode node/edge features into latent node/edge embeddings
         x = self.node_encoder(x) # output shape is the specified hidden dimension
@@ -87,7 +96,7 @@ class MeshGraphNet(pl.LightningModule):
         # step 3: decode latent node embeddings into physical quantities of interest
         return self.decoder(x)
     
-    def loss(self, pred: torch.Tensor, inputs, mean_vec_y: float, std_vec_y: float) -> torch.Tensor:
+    def loss(self, pred: torch.Tensor, inputs, split: str) -> torch.Tensor:
         #Define the node types that we calculate loss for
         normal=torch.tensor(0)
         outflow=torch.tensor(5)
@@ -97,7 +106,14 @@ class MeshGraphNet(pl.LightningModule):
                                    (torch.argmax(inputs.x[:,2:],dim=1)==outflow))
 
         #Normalize labels with dataset statistics
-        labels = normalize(inputs.y, mean_vec_y, std_vec_y)
+        if split == 'train':
+            labels = normalize(inputs.y, self.mean_vec_y_train, self.std_vec_y_train)
+        elif split == 'val':
+            labels = normalize(inputs.y, self.mean_vec_y_val, self.std_vec_y_val)
+        elif split == 'test':
+            labels = normalize(inputs.y, self.mean_vec_y_test, self.std_vec_y_test) # type: ignore
+        else:
+            raise ValueError('Invalid split name')
 
         #Find sum of square errors
         error = torch.sum((labels-pred)**2, dim=1)
@@ -109,13 +125,26 @@ class MeshGraphNet(pl.LightningModule):
     
     def on_train_start(self) -> None:
         """Set up folders for validation and test sets"""
-        pass
+        self.mean_vec_x_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'mean_vec_x.pt'))
+        self.std_vec_x_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'std_vec_x.pt'))
+        self.mean_vec_edge_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'mean_vec_edge.pt'))
+        self.std_vec_edge_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'std_vec_edge.pt'))
+        self.mean_vec_y_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'mean_vec_y.pt'))
+        self.std_vec_y_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'std_vec_y.pt'))
+
+        self.mean_vec_x_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'mean_vec_x.pt'))
+        self.std_vec_x_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'std_vec_x.pt'))
+        self.mean_vec_edge_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'mean_vec_edge.pt'))
+        self.std_vec_edge_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'std_vec_edge.pt'))
+        self.mean_vec_y_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'mean_vec_y.pt'))
+        self.std_vec_y_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'std_vec_y.pt'))
 
     def training_step(self, batch, batch_idx: int):
         """Training step of the model."""
-        pass
+        pred = self(batch, split='train')
+        loss = self.loss(pred, batch, split='train')
+        self.log('train/loss', loss)
 
-    
     def validation_step(self, batch, batch_idx: int):
         """Validation step of the model."""
         pass
