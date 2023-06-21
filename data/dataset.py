@@ -48,6 +48,7 @@ class MeshDataset(Dataset):
 
         self.eps = torch.tensor(1e-8)
 
+        # mean and std of the node features are calculated
         self.mean_vec_x = torch.zeros(11)
         self.std_vec_x = torch.zeros(11)
 
@@ -59,7 +60,7 @@ class MeshDataset(Dataset):
         self.mean_vec_y = torch.zeros(2)
         self.std_vec_y = torch.zeros(2)
 
-        #Define counters used in normalization
+        # define counters used in normalization
         self.num_accs_x  =  0
         self.num_accs_edge = 0
         self.num_accs_y = 0
@@ -108,9 +109,48 @@ class MeshDataset(Dataset):
             out[key] = data
         return out
 
+    def update_stats(self, x: torch.Tensor, edge_attr: torch.Tensor, y: torch.Tensor) -> None:
+        """Update the mean and std of the node features, edge features, and output parameters."""
+        self.mean_vec_x += torch.sum(x, dim = 0)
+        self.std_vec_x += torch.sum(x**2, dim = 0)
+        self.num_accs_x += x.shape[0]
+
+        self.mean_vec_edge += torch.sum(edge_attr, dim=0)
+        self.std_vec_edge += torch.sum(edge_attr**2, dim=0)
+        self.num_accs_edge += edge_attr.shape[0]
+
+        self.mean_vec_y += torch.sum(y, dim=0)
+        self.std_vec_y += torch.sum(y**2, dim=0)
+        self.num_accs_y += y.shape[0]
+
+    def save_stats(self) -> None:
+        """Save the mean and std of the node features, edge features, and output parameters."""
+        self.mean_vec_x = self.mean_vec_x / self.num_accs_x
+        self.std_vec_x = torch.maximum(torch.sqrt(self.std_vec_x / self.num_accs_x - self.mean_vec_x**2), self.eps)
+
+        self.mean_vec_edge = self.mean_vec_edge / self.num_accs_edge
+        self.std_vec_edge = torch.maximum(torch.sqrt(self.std_vec_edge / self.num_accs_edge - self.mean_vec_edge**2), self.eps)
+
+        self.mean_vec_y = self.mean_vec_y / self.num_accs_y
+        self.std_vec_y = torch.maximum(torch.sqrt(self.std_vec_y / self.num_accs_y - self.mean_vec_y**2), self.eps)
+
+        os.makedirs(os.path.join(self.processed_dir, self.split, 'stats'), exist_ok=True)
+
+        torch.save(self.mean_vec_x, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_x.pt'))
+        torch.save(self.std_vec_x, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_x.pt'))
+
+        torch.save(self.mean_vec_edge, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_edge.pt'))
+        torch.save(self.std_vec_edge, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_edge.pt'))
+
+        torch.save(self.mean_vec_y, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_y.pt'))
+        torch.save(self.std_vec_y, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_y.pt'))
+
     def process(self) -> None:
+        """Process the dataset."""
+        # load meta data
         with open(os.path.join(self.raw_dir, 'meta.json'), 'r') as fp:
             meta = json.loads(fp.read())
+        # convert data to dict
         ds = tf.data.TFRecordDataset(os.path.join(self.raw_dir, f'%s.tfrecord' % self.split))
         ds = ds.map(functools.partial(self._parse, meta=meta), num_parallel_calls=8)
 
@@ -119,10 +159,12 @@ class MeshDataset(Dataset):
             data_list = []
             if (idx==self.idx_lim):
                 break
+            # convert tensors from tf to pytorch
             d = {}
             for key, value in data.items():
                     d[key] = torch.from_numpy(value.numpy()).squeeze(dim=0)
             ts = d['velocity'].shape[0]
+            # extract data from each time step
             for t in range(ts-1):
                 # get node features
                 v = d['velocity'][t, :, :]
@@ -144,39 +186,12 @@ class MeshDataset(Dataset):
                 v_tp1 = d['velocity'][t+1, :, :]
                 y = ((v_tp1-v_t)/meta['dt']).type(torch.float)
 
-                self.mean_vec_x += torch.sum(x, dim = 0)
-                self.std_vec_x += torch.sum(x**2, dim = 0)
-                self.num_accs_x += x.shape[0]
-
-                self.mean_vec_edge += torch.sum(edge_attr, dim=0)
-                self.std_vec_edge += torch.sum(edge_attr**2, dim=0)
-                self.num_accs_edge += edge_attr.shape[0]
-
-                self.mean_vec_y += torch.sum(y, dim=0)
-                self.std_vec_y += torch.sum(y**2, dim=0)
-                self.num_accs_y += y.shape[0]
-
+                self.update_stats(x, edge_attr, y)
                 data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, p=d['pressure'][t, :, :], cells=d['cells'], mesh_pos=d['mesh_pos']))
 
             torch.save(data_list, os.path.join(self.processed_dir, self.split, f'data_{idx}.pt'))
 
-        self.mean_vec_x = self.mean_vec_x / self.num_accs_x
-        self.std_vec_x = torch.maximum(torch.sqrt(self.std_vec_x / self.num_accs_x - self.mean_vec_x**2), self.eps)
-
-        self.mean_vec_edge = self.mean_vec_edge / self.num_accs_edge
-        self.std_vec_edge = torch.maximum(torch.sqrt(self.std_vec_edge / self.num_accs_edge - self.mean_vec_edge**2), self.eps)
-
-        self.mean_vec_y = self.mean_vec_y / self.num_accs_y
-        self.std_vec_y = torch.maximum(torch.sqrt(self.std_vec_y / self.num_accs_y - self.mean_vec_y**2), self.eps)
-
-        torch.save(self.mean_vec_x, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_x.pt'))
-        torch.save(self.std_vec_x, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_x.pt'))
-
-        torch.save(self.mean_vec_edge, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_edge.pt'))
-        torch.save(self.std_vec_edge, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_edge.pt'))
-
-        torch.save(self.mean_vec_y, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_y.pt'))
-        torch.save(self.std_vec_y, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_y.pt'))
+        self.save_stats()
 
     def len(self) -> int:
         return len(self.processed_file_names)
