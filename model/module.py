@@ -109,16 +109,7 @@ class MeshGraphNet(pl.LightningModule):
     
     def on_train_start(self) -> None:
         """Set up folders for validation and test sets"""
-        assert self.trainer.train_dataloader is not None
-        i = 0
-        for batch in self.trainer.train_dataloader:
-            if i == 0:
-                stats = np.array(get_stats(batch))
-            else:
-                stats += np.array(get_stats(batch)) # type: ignore
-            i += 1
-        stats /= (i+1) # type: ignore
-        self.mean_vec_x, self.std_vec_x, self.mean_vec_edge, self.std_vec_edge, self.mean_vec_y, self.std_vec_y = stats # type: ignore
+        pass
 
     def training_step(self, batch, batch_idx: int):
         """Training step of the model."""
