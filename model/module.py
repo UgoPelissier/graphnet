@@ -6,7 +6,6 @@ from model.processor import ProcessorLayer
 import torch
 import torch.nn as nn
 from torch.nn import Linear, Sequential, LayerNorm, ReLU
-from torch_geometric.data import Data
 
 import lightning.pytorch as pl
 from lightning.pytorch.cli import OptimizerCallable, LRSchedulerCallable
@@ -61,6 +60,24 @@ class MeshGraphNet(pl.LightningModule):
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
 
+    def load_stats(self):
+        """Load statistics from the dataset."""
+        train_dir = osp.join(self.dataset, 'processed', 'stats', 'train')
+        self.mean_vec_x_train = torch.load(osp.join(train_dir, 'mean_vec_x.pt'), map_location=self.device)
+        self.std_vec_x_train = torch.load(osp.join(train_dir, 'std_vec_x.pt'), map_location=self.device)
+        self.mean_vec_edge_train = torch.load(osp.join(train_dir, 'mean_vec_edge.pt'), map_location=self.device)
+        self.std_vec_edge_train = torch.load(osp.join(train_dir, 'std_vec_edge.pt'), map_location=self.device)
+        self.mean_vec_y_train = torch.load(osp.join(train_dir, 'mean_vec_y.pt'), map_location=self.device)
+        self.std_vec_y_train = torch.load(osp.join(train_dir, 'std_vec_y.pt'), map_location=self.device)
+
+        val_dir = osp.join(self.dataset, 'processed', 'stats', 'valid')
+        self.mean_vec_x_val = torch.load(osp.join(val_dir, 'mean_vec_x.pt'), map_location=self.device)
+        self.std_vec_x_val = torch.load(osp.join(val_dir, 'std_vec_x.pt'), map_location=self.device)
+        self.mean_vec_edge_val = torch.load(osp.join(val_dir, 'mean_vec_edge.pt'), map_location=self.device)
+        self.std_vec_edge_val = torch.load(osp.join(val_dir, 'std_vec_edge.pt'), map_location=self.device)
+        self.mean_vec_y_val = torch.load(osp.join(val_dir, 'mean_vec_y.pt'), map_location=self.device)
+        self.std_vec_y_val = torch.load(osp.join(val_dir, 'std_vec_y.pt'), map_location=self.device)
+
     def build_processor_model(self):
         return ProcessorLayer
     
@@ -104,12 +121,12 @@ class MeshGraphNet(pl.LightningModule):
         else:
             raise ValueError('Invalid split name')
 
-    def forward(self, data: Data, split: str):
+    def forward(self, batch, split: str):
         """
         Encoder encodes graph (node/edge features) into latent vectors (node/edge embeddings)
         The return of processor is fed into the processor for generating new feature vectors
         """
-        x, edge_index, edge_attr, pressure = data.x, data.edge_index, data.edge_attr, data.p
+        x, edge_index, edge_attr, pressure = batch.x, batch.edge_index.long(), batch.edge_attr, batch.p
 
         x, edge_attr, _ = self.normalize(x=x, edge_attr=edge_attr, labels=None, split=split)
 
@@ -136,7 +153,7 @@ class MeshGraphNet(pl.LightningModule):
                                    (torch.argmax(inputs.x[:,2:],dim=1)==outflow))
 
         # normalize labels with dataset statistics
-        _, _, labels = self.normalize(x=None, edge_attr=None, labels=labels, split=split)
+        _, _, labels = self.normalize(x=None, edge_attr=None, labels=inputs.y, split=split)
 
         # find sum of square errors
         error = torch.sum((labels-pred)**2, dim=1)
@@ -145,34 +162,20 @@ class MeshGraphNet(pl.LightningModule):
         loss= torch.sqrt(torch.mean(error[loss_mask]))
         
         return loss
-    
-    def on_train_start(self) -> None:
-        """Set up folders for validation and test sets"""
-        self.mean_vec_x_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'mean_vec_x.pt'))
-        self.std_vec_x_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'std_vec_x.pt'))
-        self.mean_vec_edge_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'mean_vec_edge.pt'))
-        self.std_vec_edge_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'std_vec_edge.pt'))
-        self.mean_vec_y_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'mean_vec_y.pt'))
-        self.std_vec_y_train = torch.load(osp.join(self.dataset, 'processed', 'train', 'stats', 'std_vec_y.pt'))
-
-        self.mean_vec_x_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'mean_vec_x.pt'))
-        self.std_vec_x_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'std_vec_x.pt'))
-        self.mean_vec_edge_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'mean_vec_edge.pt'))
-        self.std_vec_edge_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'std_vec_edge.pt'))
-        self.mean_vec_y_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'mean_vec_y.pt'))
-        self.std_vec_y_val = torch.load(osp.join(self.dataset, 'processed', 'val', 'stats', 'std_vec_y.pt'))
 
     def training_step(self, batch, batch_idx: int):
         """Training step of the model."""
         pred = self(batch, split='train')
         loss = self.loss(pred, batch, split='train')
-        self.log('train/loss', loss)
+        self.log('train/loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
     def validation_step(self, batch, batch_idx: int):
         """Validation step of the model."""
+        if self.trainer.sanity_checking:
+            self.load_stats()
         pred = self(batch, split='val')
         loss = self.loss(pred, batch, split='val')
-        self.log('train/loss', loss)
+        self.log('valid/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
     
     def configure_optimizers(self):
         """Configure the optimizer and the learning rate scheduler."""
