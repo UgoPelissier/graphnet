@@ -46,9 +46,11 @@ class MyLightningCLI(LightningCLI):
                 "model.output_dim": 2,
                 "model.optimizer": "torch.optim.AdamW",
 
-                "trainer.max_epochs": 100,
+                "trainer.max_epochs": 1000,
                 "trainer.accelerator": "gpu",
                 "trainer.devices": 1,
+                "trainer.check_val_every_n_epoch": 10,
+                "trainer.log_every_n_steps": 1,
                 "trainer.logger": logger,
                 "trainer.callbacks": default_callbacks,
             },
