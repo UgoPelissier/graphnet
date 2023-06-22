@@ -46,7 +46,14 @@ class MeshDataset(Dataset):
         self.field = field
         self.time_steps = time_steps
 
-        self.idx_lim = idx_lim_train if self.split == 'train' else idx_lim_val
+        if self.split == 'train':
+            self.idx_lim = idx_lim_train
+        elif self.split == 'valid':
+             self.idx_lim = idx_lim_val
+        elif self.split == 'test':
+            self.idx_lim = 1
+        else:
+            raise ValueError(f"Invalid split: {self.split}")
         self.time_step_lim = time_step_lim
 
         self.eps = torch.tensor(1e-8)
