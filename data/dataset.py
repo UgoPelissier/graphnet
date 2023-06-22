@@ -83,7 +83,7 @@ class MeshDataset(Dataset):
 
     @property
     def processed_file_names(self) -> list:
-        return ["train.pt", "valid.pt"]
+        return ["train.pt", "valid.pt", "test.pt"]
     
     def download(self) -> None:
         print(f'Download dataset {self.dataset_name} to {self.raw_dir}')

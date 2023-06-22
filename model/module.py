@@ -78,6 +78,14 @@ class MeshGraphNet(pl.LightningModule):
         self.mean_vec_y_val = torch.load(osp.join(val_dir, 'mean_vec_y.pt'), map_location=self.device)
         self.std_vec_y_val = torch.load(osp.join(val_dir, 'std_vec_y.pt'), map_location=self.device)
 
+        test_dir = osp.join(self.dataset, 'processed', 'stats', 'test')
+        self.mean_vec_x_test = torch.load(osp.join(test_dir, 'mean_vec_x.pt'), map_location=self.device)
+        self.std_vec_x_test = torch.load(osp.join(test_dir, 'std_vec_x.pt'), map_location=self.device)
+        self.mean_vec_edge_test = torch.load(osp.join(test_dir, 'mean_vec_edge.pt'), map_location=self.device)
+        self.std_vec_edge_test = torch.load(osp.join(test_dir, 'std_vec_edge.pt'), map_location=self.device)
+        self.mean_vec_y_test = torch.load(osp.join(test_dir, 'mean_vec_y.pt'), map_location=self.device)
+        self.std_vec_y_test = torch.load(osp.join(test_dir, 'std_vec_y.pt'), map_location=self.device)
+        
     def build_processor_model(self):
         return ProcessorLayer
     
@@ -98,6 +106,14 @@ class MeshGraphNet(pl.LightningModule):
             if labels is not None:
                 labels = (labels-self.mean_vec_y_val)/self.std_vec_y_val
             return x, edge_attr, labels
+        elif split == 'test':
+            if x is not None:
+                x = (x-self.mean_vec_x_test)/self.std_vec_x_test
+            if edge_attr is not None:
+                edge_attr = (edge_attr-self.mean_vec_edge_test)/self.std_vec_edge_test
+            if labels is not None:
+                labels = (labels-self.mean_vec_y_test)/self.std_vec_y_test
+            return x, edge_attr, labels
         else:
             raise ValueError('Invalid split name')
         
@@ -117,6 +133,14 @@ class MeshGraphNet(pl.LightningModule):
                 edge_attr = edge_attr*self.std_vec_edge_val+self.mean_vec_edge_val
             if labels is not None:
                 labels = labels*self.std_vec_y_val+self.mean_vec_y_val
+            return x, edge_attr, labels
+        elif split == 'test':
+            if x is not None:
+                x = x*self.std_vec_x_test+self.mean_vec_x_test
+            if edge_attr is not None:
+                edge_attr = edge_attr*self.std_vec_edge_test+self.mean_vec_edge_test
+            if labels is not None:
+                labels = labels*self.std_vec_y_test+self.mean_vec_y_test
             return x, edge_attr, labels
         else:
             raise ValueError('Invalid split name')
@@ -176,6 +200,12 @@ class MeshGraphNet(pl.LightningModule):
         pred = self(batch, split='val')
         loss = self.loss(pred, batch, split='val')
         self.log('valid/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+
+    def test_step(self, batch, batch_idx: int):
+        """Test step of the model."""
+        pred = self(batch, split='val')
+        loss = self.loss(pred, batch, split='val')
+        self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
     
     def configure_optimizers(self):
         """Configure the optimizer and the learning rate scheduler."""
