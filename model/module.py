@@ -1,7 +1,6 @@
 from typing import Optional
 import os.path as osp
 
-from model.normalization import normalize, unnormalize
 from model.processor import ProcessorLayer
 
 import torch
@@ -64,6 +63,46 @@ class MeshGraphNet(pl.LightningModule):
 
     def build_processor_model(self):
         return ProcessorLayer
+    
+    def normalize(self, x: torch.Tensor, edge_attr: torch.Tensor, labels: torch.Tensor, split) -> torch.Tensor:
+        if split == 'train':
+            if x is not None:
+                x = (x-self.mean_vec_x_train)/self.std_vec_x_train
+            if edge_attr is not None:
+                edge_attr = (edge_attr-self.mean_vec_edge_train)/self.std_vec_edge_train    
+            if labels is not None:
+                labels = (labels-self.mean_vec_y_train)/self.std_vec_y_train
+            return x, edge_attr, labels
+        elif split == 'val':
+            if x is not None:
+                x = (x-self.mean_vec_x_val)/self.std_vec_x_val
+            if edge_attr is not None:
+                edge_attr = (edge_attr-self.mean_vec_edge_val)/self.std_vec_edge_val
+            if labels is not None:
+                labels = (labels-self.mean_vec_y_val)/self.std_vec_y_val
+            return x, edge_attr, labels
+        else:
+            raise ValueError('Invalid split name')
+        
+    def unnormalize(self, x: torch.Tensor, edge_attr: torch.Tensor, labels: torch.Tensor, split) -> torch.Tensor:
+        if split == 'train':
+            if x is not None:
+                x = x*self.std_vec_x_train+self.mean_vec_x_train
+            if edge_attr is not None:
+                edge_attr = edge_attr*self.std_vec_edge_train+self.mean_vec_edge_train
+            if labels is not None:
+                labels = labels*self.std_vec_y_train+self.mean_vec_y_train
+            return x, edge_attr, labels
+        elif split == 'val':
+            if x is not None:
+                x = x*self.std_vec_x_val+self.mean_vec_x_val
+            if edge_attr is not None:
+                edge_attr = edge_attr*self.std_vec_edge_val+self.mean_vec_edge_val
+            if labels is not None:
+                labels = labels*self.std_vec_y_val+self.mean_vec_y_val
+            return x, edge_attr, labels
+        else:
+            raise ValueError('Invalid split name')
 
     def forward(self, data: Data, split: str):
         """
@@ -72,19 +111,9 @@ class MeshGraphNet(pl.LightningModule):
         """
         x, edge_index, edge_attr, pressure = data.x, data.edge_index, data.edge_attr, data.p
 
-        if split == 'train':
-            x = normalize(x, self.mean_vec_x_train, self.std_vec_x_train)
-            edge_attr = normalize(edge_attr, self.mean_vec_edge_train, self.std_vec_edge_train)
-        elif split == 'val':
-            x = normalize(x, self.mean_vec_x_val, self.std_vec_x_val)
-            edge_attr = normalize(edge_attr, self.mean_vec_edge_val, self.std_vec_edge_val)
-        elif split == 'test':
-            x = normalize(x, self.mean_vec_x_test, self.std_vec_x_test) # type: ignore
-            edge_attr = normalize(edge_attr, self.mean_vec_edge_test, self.std_vec_edge_test) # type: ignore
-        else:
-            raise ValueError('Invalid split name')
+        x, edge_attr, _ = self.normalize(x=x, edge_attr=edge_attr, labels=None, split=split)
 
-        # Step 1: encode node/edge features into latent node/edge embeddings
+        # step 1: encode node/edge features into latent node/edge embeddings
         x = self.node_encoder(x) # output shape is the specified hidden dimension
 
         edge_attr = self.edge_encoder(edge_attr) # output shape is the specified hidden dimension
@@ -97,28 +126,22 @@ class MeshGraphNet(pl.LightningModule):
         return self.decoder(x)
     
     def loss(self, pred: torch.Tensor, inputs, split: str) -> torch.Tensor:
-        #Define the node types that we calculate loss for
+        """Calculate the loss for the given prediction and inputs."""
+        # define the node types that we calculate loss for
         normal=torch.tensor(0)
         outflow=torch.tensor(5)
 
-        #Get the loss mask for the nodes of the types we calculate loss for
+        # get the loss mask for the nodes of the types we calculate loss for
         loss_mask=torch.logical_or((torch.argmax(inputs.x[:,2:],dim=1)==normal),
                                    (torch.argmax(inputs.x[:,2:],dim=1)==outflow))
 
-        #Normalize labels with dataset statistics
-        if split == 'train':
-            labels = normalize(inputs.y, self.mean_vec_y_train, self.std_vec_y_train)
-        elif split == 'val':
-            labels = normalize(inputs.y, self.mean_vec_y_val, self.std_vec_y_val)
-        elif split == 'test':
-            labels = normalize(inputs.y, self.mean_vec_y_test, self.std_vec_y_test) # type: ignore
-        else:
-            raise ValueError('Invalid split name')
+        # normalize labels with dataset statistics
+        _, _, labels = self.normalize(x=None, edge_attr=None, labels=labels, split=split)
 
-        #Find sum of square errors
+        # find sum of square errors
         error = torch.sum((labels-pred)**2, dim=1)
 
-        #Root and mean the errors for the nodes we calculate loss for
+        # root and mean the errors for the nodes we calculate loss for
         loss= torch.sqrt(torch.mean(error[loss_mask]))
         
         return loss
@@ -147,7 +170,9 @@ class MeshGraphNet(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx: int):
         """Validation step of the model."""
-        pass
+        pred = self(batch, split='val')
+        loss = self.loss(pred, batch, split='val')
+        self.log('train/loss', loss)
     
     def configure_optimizers(self):
         """Configure the optimizer and the learning rate scheduler."""

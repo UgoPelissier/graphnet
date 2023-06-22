@@ -2,8 +2,6 @@ import lightning.pytorch as pl
 from data.dataset import MeshDataset
 from torch_geometric.loader import DataLoader
 
-from model.normalization import get_stats
-
 class MeshDataModule(pl.LightningDataModule):
     def __init__(self,
                  data_dir: str,
