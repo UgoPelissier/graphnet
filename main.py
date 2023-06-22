@@ -33,8 +33,9 @@ class MyLightningCLI(LightningCLI):
                 "data.data_dir": "/home/eleve05/safran/graphnet/data/",
                 "data.dataset_name": "cylinder_flow",
                 "data.field": "velocity",
-                "data.batch_size_train": 16,
-                "data.batch_size_valid": 16,
+                "data.time_steps": 600,
+                "data.batch_size_train": 64,
+                "data.batch_size_valid": 32,
 
                 "model.path": "/home/eleve05/safran/graphnet/",
                 "model.dataset": "/home/eleve05/safran/graphnet/data/",
@@ -48,8 +49,8 @@ class MyLightningCLI(LightningCLI):
 
                 "trainer.max_epochs": 1000,
                 "trainer.accelerator": "gpu",
-                "trainer.devices": 1,
-                "trainer.check_val_every_n_epoch": 10,
+                "trainer.devices": 2,
+                "trainer.check_val_every_n_epoch": 1,
                 "trainer.log_every_n_steps": 1,
                 "trainer.logger": logger,
                 "trainer.callbacks": default_callbacks,
