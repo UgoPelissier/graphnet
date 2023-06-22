@@ -33,7 +33,6 @@ class MeshDataset(Dataset):
                  data_dir: str,
                  dataset_name: str,
                  field: str,
-                 history: bool,
                  split: str,
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None
@@ -42,7 +41,6 @@ class MeshDataset(Dataset):
         self.data_dir = data_dir
         self.dataset_name = dataset_name
         self.field = field
-        self.history = history
 
         self.idx_lim = 10 if self.split == 'train' else 2
 
