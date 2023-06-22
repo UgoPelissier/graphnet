@@ -71,7 +71,7 @@ class MeshDataset(Dataset):
 
     @property
     def processed_file_names(self) -> list:
-        return glob.glob(os.path.join(self.processed_dir, self.split, 'data_*.pt'))
+        return ["train.pt", "valid.pt"]
     
     def download(self) -> None:
         print(f'Download dataset {self.dataset_name} to {self.raw_dir}')
@@ -132,16 +132,17 @@ class MeshDataset(Dataset):
         self.mean_vec_y = self.mean_vec_y / self.num_accs_y
         self.std_vec_y = torch.maximum(torch.sqrt(self.std_vec_y / self.num_accs_y - self.mean_vec_y**2), self.eps)
 
-        os.makedirs(os.path.join(self.processed_dir, self.split, 'stats'), exist_ok=True)
+        save_dir = os.path.join(self.processed_dir, 'stats', self.split, )
+        os.makedirs(save_dir, exist_ok=True)
 
-        torch.save(self.mean_vec_x, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_x.pt'))
-        torch.save(self.std_vec_x, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_x.pt'))
+        torch.save(self.mean_vec_x, os.path.join(save_dir, 'mean_vec_x.pt'))
+        torch.save(self.std_vec_x, os.path.join(save_dir, 'std_vec_x.pt'))
 
-        torch.save(self.mean_vec_edge, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_edge.pt'))
-        torch.save(self.std_vec_edge, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_edge.pt'))
+        torch.save(self.mean_vec_edge, os.path.join(save_dir, 'mean_vec_edge.pt'))
+        torch.save(self.std_vec_edge, os.path.join(save_dir, 'std_vec_edge.pt'))
 
-        torch.save(self.mean_vec_y, os.path.join(self.processed_dir, self.split, 'stats', 'mean_vec_y.pt'))
-        torch.save(self.std_vec_y, os.path.join(self.processed_dir, self.split, 'stats', 'std_vec_y.pt'))
+        torch.save(self.mean_vec_y, os.path.join(save_dir, 'mean_vec_y.pt'))
+        torch.save(self.std_vec_y, os.path.join(save_dir, 'std_vec_y.pt'))
 
     def process(self) -> None:
         """Process the dataset."""
@@ -152,9 +153,9 @@ class MeshDataset(Dataset):
         ds = tf.data.TFRecordDataset(os.path.join(self.raw_dir, f'%s.tfrecord' % self.split))
         ds = ds.map(functools.partial(self._parse, meta=meta), num_parallel_calls=8)
 
-        os.makedirs(os.path.join(self.processed_dir, self.split), exist_ok=True)
+        data_list = []
         for idx, data in enumerate(ds):
-            data_list = []
+            print(f'Processing trajectry {idx+1}')
             if (idx==self.idx_lim):
                 break
             # convert tensors from tf to pytorch
@@ -187,13 +188,12 @@ class MeshDataset(Dataset):
                 self.update_stats(x, edge_attr, y)
                 data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, p=d['pressure'][t, :, :], cells=d['cells'], mesh_pos=d['mesh_pos']))
 
-            torch.save(data_list, os.path.join(self.processed_dir, self.split, f'data_{idx}.pt'))
-
+        torch.save(data_list, os.path.join(self.processed_dir, f'{self.split}.pt'))
         self.save_stats()
 
     def len(self) -> int:
         return len(self.processed_file_names)
     
-    def get(self, idx: int) -> Data:
-        data = torch.load(os.path.join(self.processed_dir, self.split, f'data_{idx}.pt'))
+    def get(self, split: str) -> Data:
+        data = torch.load(os.path.join(self.processed_dir, f'{self.split}.pt'))
         return data
