@@ -33,6 +33,9 @@ class MeshDataset(Dataset):
                  dataset_name: str,
                  field: str,
                  time_steps: int,
+                 idx_lim_train: int,
+                 idx_lim_val: int,
+                 time_step_lim: int,
                  split: str,
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None
@@ -43,7 +46,8 @@ class MeshDataset(Dataset):
         self.field = field
         self.time_steps = time_steps
 
-        self.idx_lim = 4 if self.split == 'train' else 1
+        self.idx_lim = idx_lim_train if self.split == 'train' else idx_lim_val
+        self.time_step_lim = time_step_lim
 
         self.eps = torch.tensor(1e-8)
 
@@ -165,6 +169,8 @@ class MeshDataset(Dataset):
                     d[key] = torch.from_numpy(value.numpy()).squeeze(dim=0)
             # extract data from each time step
             for t in range(self.time_steps-1):
+                if (t==self.time_step_lim):
+                    break
                 # get node features
                 v = d['velocity'][t, :, :]
                 node_type = torch.tensor(np.array(tf.one_hot(tf.convert_to_tensor(data['node_type'][0,:,0]), NodeType.SIZE)))
@@ -192,7 +198,7 @@ class MeshDataset(Dataset):
         self.save_stats()
 
     def len(self) -> int:
-        return self.idx_lim*(self.time_steps-1)
+        return self.idx_lim*(self.time_step_lim-1)
     
     def get(self, idx: int) -> Data:
         data = torch.load(osp.join(self.processed_dir, f'{self.split}.pt'))

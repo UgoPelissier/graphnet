@@ -34,8 +34,11 @@ class MyLightningCLI(LightningCLI):
                 "data.dataset_name": "cylinder_flow",
                 "data.field": "velocity",
                 "data.time_steps": 600,
-                "data.batch_size_train": 64,
-                "data.batch_size_valid": 32,
+                "data.idx_lim_train": 4,
+                "data.idx_lim_val": 1,
+                "data.time_step_lim": 100,
+                "data.batch_size_train": 1,
+                "data.batch_size_valid": 1,
 
                 "model.path": "/home/eleve05/safran/graphnet/",
                 "model.dataset": "/home/eleve05/safran/graphnet/data/",
