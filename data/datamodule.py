@@ -7,6 +7,7 @@ class MeshDataModule(pl.LightningDataModule):
                  data_dir: str,
                  dataset_name: str,
                  field: str,
+                 time_steps: int,
                  batch_size_train: int,
                  batch_size_valid: int
                  ) -> None:
@@ -14,11 +15,12 @@ class MeshDataModule(pl.LightningDataModule):
         self.data_dir = data_dir
         self.dataset_name = dataset_name
         self.field = field
+        self.time_steps = time_steps
         self.batch_size_train = batch_size_train
         self.batch_size_valid = batch_size_valid
         
-        self.train_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, split="train")
-        self.valid_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, split="valid")
+        self.train_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, split="train")
+        self.valid_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, split="valid")
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, num_workers=8)

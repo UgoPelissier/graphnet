@@ -4,7 +4,6 @@ import torch
 from typing import Optional, Callable
 from torch_geometric.data import Dataset, Data, download_url
 import numpy as np
-import glob
 import json
 import tensorflow as tf
 import functools
@@ -33,6 +32,7 @@ class MeshDataset(Dataset):
                  data_dir: str,
                  dataset_name: str,
                  field: str,
+                 time_steps: int,
                  split: str,
                  transform: Optional[Callable] = None,
                  pre_transform: Optional[Callable] = None
@@ -41,8 +41,9 @@ class MeshDataset(Dataset):
         self.data_dir = data_dir
         self.dataset_name = dataset_name
         self.field = field
+        self.time_steps = time_steps
 
-        self.idx_lim = 10 if self.split == 'train' else 2
+        self.idx_lim = 4 if self.split == 'train' else 1
 
         self.eps = torch.tensor(1e-8)
 
@@ -132,46 +133,45 @@ class MeshDataset(Dataset):
         self.mean_vec_y = self.mean_vec_y / self.num_accs_y
         self.std_vec_y = torch.maximum(torch.sqrt(self.std_vec_y / self.num_accs_y - self.mean_vec_y**2), self.eps)
 
-        save_dir = os.path.join(self.processed_dir, 'stats', self.split, )
+        save_dir = osp.join(self.processed_dir, 'stats', self.split, )
         os.makedirs(save_dir, exist_ok=True)
 
-        torch.save(self.mean_vec_x, os.path.join(save_dir, 'mean_vec_x.pt'))
-        torch.save(self.std_vec_x, os.path.join(save_dir, 'std_vec_x.pt'))
+        torch.save(self.mean_vec_x, osp.join(save_dir, 'mean_vec_x.pt'))
+        torch.save(self.std_vec_x, osp.join(save_dir, 'std_vec_x.pt'))
 
-        torch.save(self.mean_vec_edge, os.path.join(save_dir, 'mean_vec_edge.pt'))
-        torch.save(self.std_vec_edge, os.path.join(save_dir, 'std_vec_edge.pt'))
+        torch.save(self.mean_vec_edge, osp.join(save_dir, 'mean_vec_edge.pt'))
+        torch.save(self.std_vec_edge, osp.join(save_dir, 'std_vec_edge.pt'))
 
-        torch.save(self.mean_vec_y, os.path.join(save_dir, 'mean_vec_y.pt'))
-        torch.save(self.std_vec_y, os.path.join(save_dir, 'std_vec_y.pt'))
+        torch.save(self.mean_vec_y, osp.join(save_dir, 'mean_vec_y.pt'))
+        torch.save(self.std_vec_y, osp.join(save_dir, 'std_vec_y.pt'))
 
     def process(self) -> None:
         """Process the dataset."""
         # load meta data
-        with open(os.path.join(self.raw_dir, 'meta.json'), 'r') as fp:
+        with open(osp.join(self.raw_dir, 'meta.json'), 'r') as fp:
             meta = json.loads(fp.read())
         # convert data to dict
-        ds = tf.data.TFRecordDataset(os.path.join(self.raw_dir, f'%s.tfrecord' % self.split))
+        ds = tf.data.TFRecordDataset(osp.join(self.raw_dir, f'%s.tfrecord' % self.split))
         ds = ds.map(functools.partial(self._parse, meta=meta), num_parallel_calls=8)
 
         data_list = []
         for idx, data in enumerate(ds):
-            print(f'Processing trajectry {idx+1}')
             if (idx==self.idx_lim):
                 break
+            print(f'Processing trajectory {idx+1}')
             # convert tensors from tf to pytorch
             d = {}
             for key, value in data.items():
                     d[key] = torch.from_numpy(value.numpy()).squeeze(dim=0)
-            ts = d['velocity'].shape[0]
             # extract data from each time step
-            for t in range(ts-1):
+            for t in range(self.time_steps-1):
                 # get node features
                 v = d['velocity'][t, :, :]
                 node_type = torch.tensor(np.array(tf.one_hot(tf.convert_to_tensor(data['node_type'][0,:,0]), NodeType.SIZE)))
                 x = torch.cat((v, node_type),dim=-1).type(torch.float)
 
                 # get edge indices in COO format
-                edge_index = self.triangles_to_edges(d['cells'])
+                edge_index = self.triangles_to_edges(d['cells']).long()
 
                 # get edge attributes
                 u_i = d['mesh_pos'][edge_index[0]]
@@ -188,12 +188,12 @@ class MeshDataset(Dataset):
                 self.update_stats(x, edge_attr, y)
                 data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, p=d['pressure'][t, :, :], cells=d['cells'], mesh_pos=d['mesh_pos']))
 
-        torch.save(data_list, os.path.join(self.processed_dir, f'{self.split}.pt'))
+        torch.save(data_list, osp.join(self.processed_dir, f'{self.split}.pt'))
         self.save_stats()
 
     def len(self) -> int:
-        return len(self.processed_file_names)
+        return self.idx_lim*(self.time_steps-1)
     
-    def get(self, split: str) -> Data:
-        data = torch.load(os.path.join(self.processed_dir, f'{self.split}.pt'))
-        return data
+    def get(self, idx: int) -> Data:
+        data = torch.load(osp.join(self.processed_dir, f'{self.split}.pt'))
+        return data[idx]
