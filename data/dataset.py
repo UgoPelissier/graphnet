@@ -161,6 +161,7 @@ class MeshDataset(Dataset):
         # load meta data
         with open(osp.join(self.raw_dir, 'meta.json'), 'r') as fp:
             meta = json.loads(fp.read())
+        self.dt = meta['dt']
         # convert data to dict
         ds = tf.data.TFRecordDataset(osp.join(self.raw_dir, f'%s.tfrecord' % self.split))
         ds = ds.map(functools.partial(self._parse, meta=meta), num_parallel_calls=8)
