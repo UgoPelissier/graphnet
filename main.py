@@ -53,7 +53,7 @@ class MyLightningCLI(LightningCLI):
 
                 "trainer.max_epochs": 1000,
                 "trainer.accelerator": "gpu",
-                "trainer.devices": "cuda:1",
+                "trainer.devices": 1,
                 "trainer.check_val_every_n_epoch": 1,
                 "trainer.log_every_n_steps": 1,
                 "trainer.logger": logger,
