@@ -49,6 +49,7 @@ class MyLightningCLI(LightningCLI):
                 "model.hidden_dim": 10,
                 "model.output_dim": 2,
                 "model.optimizer": "torch.optim.AdamW",
+                "model.time_step_lim": 100,
 
                 "trainer.max_epochs": 1000,
                 "trainer.accelerator": "gpu",
