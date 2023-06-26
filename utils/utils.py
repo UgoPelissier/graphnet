@@ -190,7 +190,7 @@ def make_animation(
     if (save_anim):
         gs_anim = animation.FuncAnimation(fig, animate, frames=num_frames, interval=1000)
         writergif = animation.PillowWriter(fps=10) 
-        anim_path = os.path.join(path, '{}_anim.gif'.format(name))
+        anim_path = os.path.join(path, '{}.gif'.format(name))
         gs_anim.save(anim_path, writer=writergif)
         plt.show(block=True)
     else:

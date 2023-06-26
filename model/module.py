@@ -114,11 +114,11 @@ class MeshGraphNet(pl.LightningModule):
 
         # normalize labels with dataset statistics
         if split == 'train':
-            labels = normalize(data=labels, mean=self.mean_vec_y_train, std=self.std_vec_y_train)
+            labels = normalize(data=inputs.y, mean=self.mean_vec_y_train, std=self.std_vec_y_train)
         elif split == 'val':
-            labels = normalize(data=labels, mean=self.mean_vec_y_val, std=self.std_vec_y_val)
+            labels = normalize(data=inputs.y, mean=self.mean_vec_y_val, std=self.std_vec_y_val)
         elif split == 'test':
-            labels = normalize(data=labels, mean=self.mean_vec_y_test, std=self.std_vec_y_test)
+            labels = normalize(data=inputs.y, mean=self.mean_vec_y_test, std=self.std_vec_y_test)
         else:
             raise ValueError(f'Invalid split: {split}')
 
@@ -154,6 +154,7 @@ class MeshGraphNet(pl.LightningModule):
         loss = self.loss(pred, batch, split='val')
         self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
+        pred = unnormalize(data=pred, mean=self.mean_vec_y_test, std=self.std_vec_y_test)
         self.vizualise(batch, pred, batch_idx)
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[LRScheduler]]]:
