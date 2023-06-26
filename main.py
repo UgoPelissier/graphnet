@@ -62,6 +62,7 @@ class MyLightningCLI(LightningCLI):
         )
 
 if __name__ == '__main__':
+    """https://medium.com/stanford-cs224w/learning-mesh-based-flow-simulations-on-graph-networks-44983679cf2d"""
     cli = MyLightningCLI(
         model_class=MeshGraphNet,
         datamodule_class=MeshDataModule,
