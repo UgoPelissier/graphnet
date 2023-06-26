@@ -2,7 +2,7 @@ import sys
 import os
 import os.path as osp
 import logging
-from typing import List, Tuple, Union, Optional, Dict, Any
+from typing import List, Tuple, Union
 
 from matplotlib import pyplot as plt
 from matplotlib import tri as mtri
