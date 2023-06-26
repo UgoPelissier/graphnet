@@ -4,6 +4,7 @@ import os.path as osp
 import json
 
 from utils.utils import normalize, unnormalize, load_stats, get_next_version, make_animation
+from data.dataset import NodeType
 from model.processor import ProcessorLayer
 
 import torch
@@ -69,6 +70,10 @@ class MeshGraphNet(pl.LightningModule):
         self.lr_scheduler = lr_scheduler
         self.time_step_lim = time_step_lim
         self.version = f'version_{get_next_version(self.logs)}'
+
+        with open(osp.join(self.dataset, 'raw', 'meta.json'), 'r') as fp:
+            meta = json.loads(fp.read())
+        self.dt = meta['dt']
         
     def build_processor_model(self):
         return ProcessorLayer
@@ -103,13 +108,9 @@ class MeshGraphNet(pl.LightningModule):
     
     def loss(self, pred: torch.Tensor, inputs: Data, split: str) -> torch.Tensor:
         """Calculate the loss for the given prediction and inputs."""
-        # define the node types that we calculate loss for
-        normal=torch.tensor(0)
-        outflow=torch.tensor(5)
-
         # get the loss mask for the nodes of the types we calculate loss for
-        loss_mask=torch.logical_or((torch.argmax(inputs.x[:,2:],dim=1)==normal),
-                                   (torch.argmax(inputs.x[:,2:],dim=1)==outflow))
+        loss_mask=torch.logical_or((torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.NORMAL)),
+                                   (torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.OUTFLOW)))
 
         # normalize labels with dataset statistics
         if split == 'train':
@@ -149,36 +150,12 @@ class MeshGraphNet(pl.LightningModule):
         """Test step of the model."""
         self.load_stats()
 
-        with open(osp.join(self.dataset, 'raw', 'meta.json'), 'r') as fp:
-            meta = json.loads(fp.read())
-        self.dt = meta['dt']
-
-        viz = copy.deepcopy(batch)
-        gs = copy.deepcopy(batch)
-        eval = copy.deepcopy(batch)
-
         pred = self(batch, split='test')
+        loss = self.loss(pred, batch, split='val')
+        self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
-        # pred gives the learnt accelaration between two timsteps
-        # next_vel = curr_vel + pred * delta_t  
-        viz.x[:, 0:2] = batch.x[:, 0:2] + pred[:] * self.dt
-        gs.x[:, 0:2] = batch.x[:, 0:2] + batch.y * self.dt
-        # gs_data - viz_data = error_data
-        eval.x[:, 0:2] = (viz.x[:, 0:2] - gs.x[:, 0:2])
+        self.vizualise(batch, pred, batch_idx)
 
-        data_list_viz = []
-        data_list_gs = []
-        data_list_eval = []
-        x_sizes = (batch.ptr[1:] - batch.ptr[:-1]).tolist()
-        mesh_pos_sizes = [int(batch.mesh_pos.shape[0]/(self.time_step_lim-1)) for i in range(self.time_step_lim-1)]
-        cells_sizes = [int(batch.cells.shape[0]/(self.time_step_lim-1)) for i in range(self.time_step_lim-1)]
-        for x_viz, x_gs, x_eval, mesh_pos, cells in zip(viz.x.split(x_sizes), gs.x.split(x_sizes), eval.x.split(x_sizes), batch.mesh_pos.split(mesh_pos_sizes), batch.cells.split(cells_sizes)):
-            data_list_viz.append(Data(x=x_viz[:, 0:2], mesh_pos=mesh_pos, cells=cells))
-            data_list_gs.append(Data(x=x_gs[:, 0:2]))
-            data_list_eval.append(Data(x=x_eval[:, 0:2]))
-    
-        make_animation(gs=data_list_gs, pred=data_list_viz, evl=data_list_eval, path=osp.join(self.logs, self.version), name='x_velocity', skip=1, save_anim=True, time_step_limit=self.time_step_lim)
-    
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[LRScheduler]]]:
         """Configure the optimizer and the learning rate scheduler."""
         optimizer = self.optimizer(self.parameters())
@@ -195,3 +172,29 @@ class MeshGraphNet(pl.LightningModule):
         self.mean_vec_x_train, self.std_vec_x_train, self.mean_vec_edge_train, self.std_vec_edge_train, self.mean_vec_y_train, self.std_vec_y_train = train_stats
         self.mean_vec_x_val, self.std_vec_x_val, self.mean_vec_edge_val, self.std_vec_edge_val, self.mean_vec_y_val, self.std_vec_y_val = val_stats
         self.mean_vec_x_test, self.std_vec_x_test, self.mean_vec_edge_test, self.std_vec_edge_test, self.mean_vec_y_test, self.std_vec_y_test = test_stats
+
+    def vizualise(self, batch: Data, pred: torch.Tensor, batch_idx: int) -> None:
+        true = copy.deepcopy(batch)
+        prediction = copy.deepcopy(batch)
+        error = copy.deepcopy(batch)
+        
+        true.x[:, 0:2] = batch.x[:, 0:2] + batch.y * self.dt
+        # pred gives the learnt accelaration between two timsteps
+        # next_vel = curr_vel + pred * delta_t  
+        prediction.x[:, 0:2] = batch.x[:, 0:2] + pred[:] * self.dt
+        # error = true - prediction
+        error.x[:, 0:2] = (prediction.x[:, 0:2] - true.x[:, 0:2])
+
+        data_list_true = []
+        data_list_prediction = []
+        data_list_error = []
+        x_sizes = (batch.ptr[1:] - batch.ptr[:-1]).tolist()
+        mesh_pos_sizes = [int(batch.mesh_pos.shape[0]/(self.time_step_lim-1)) for i in range(self.time_step_lim-1)]
+        cells_sizes = [int(batch.cells.shape[0]/(self.time_step_lim-1)) for i in range(self.time_step_lim-1)]
+        for x_true, x_pred, x_error, mesh_pos, cells in zip(true.x.split(x_sizes), prediction.x.split(x_sizes), error.x.split(x_sizes), batch.mesh_pos.split(mesh_pos_sizes), batch.cells.split(cells_sizes)):
+            data_list_true.append(Data(x=x_true[:, 0:2], mesh_pos=mesh_pos, cells=cells))
+            data_list_prediction.append(Data(x=x_pred[:, 0:2]))
+            data_list_error.append(Data(x=x_error[:, 0:2]))
+    
+        make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True, time_step_limit=self.time_step_lim)
+    
