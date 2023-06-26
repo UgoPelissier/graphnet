@@ -1,24 +1,21 @@
 import copy
-from typing import Optional
-import os
+from typing import Optional, List, Tuple, Union
 import os.path as osp
-import logging
 import json
 
-from matplotlib import pyplot as plt
-from matplotlib import tri as mtri
-from matplotlib import animation
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
+from utils.utils import get_next_version, make_animation
 from model.processor import ProcessorLayer
 
 import torch
-import torch.nn as nn
 from torch.nn import Linear, Sequential, LayerNorm, ReLU
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
+
+from torch_geometric.data import Data
 
 import lightning.pytorch as pl
 from lightning.pytorch.cli import OptimizerCallable, LRSchedulerCallable
-from lightning.fabric.utilities.cloud_io import get_filesystem
+
 
 class MeshGraphNet(pl.LightningModule):
     """Lightning module for the MeshNet model."""
@@ -33,6 +30,7 @@ class MeshGraphNet(pl.LightningModule):
             hidden_dim: int,
             output_dim: int,
             optimizer: OptimizerCallable,
+            time_step_lim: int,
             lr_scheduler: Optional[LRSchedulerCallable] = None
         ) -> None:
         super().__init__()
@@ -54,7 +52,7 @@ class MeshGraphNet(pl.LightningModule):
                                        LayerNorm(hidden_dim))
 
 
-        self.processor = nn.ModuleList()
+        self.processor = torch.nn.ModuleList()
         assert (self.num_layers >= 1), 'Number of message passing layers is not >=1'
 
         processor_layer=self.build_processor_model()
@@ -69,18 +67,18 @@ class MeshGraphNet(pl.LightningModule):
 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
-
-        self.version = f'version_{self.get_next_version()}'
+        self.time_step_lim = time_step_lim
+        self.version = f'version_{get_next_version(self.logs)}'
         
     def build_processor_model(self):
         return ProcessorLayer
 
-    def forward(self, batch, split: str):
+    def forward(self, batch: Data, split: str):
         """
         Encoder encodes graph (node/edge features) into latent vectors (node/edge embeddings)
         The return of processor is fed into the processor for generating new feature vectors
         """
-        x, edge_index, edge_attr, pressure = batch.x, batch.edge_index.long(), batch.edge_attr, batch.p
+        x, edge_index, edge_attr = batch.x, batch.edge_index.long(), batch.edge_attr
 
         x, edge_attr, _ = self.normalize(x=x, edge_attr=edge_attr, labels=None, split=split)
 
@@ -96,7 +94,7 @@ class MeshGraphNet(pl.LightningModule):
         # step 3: decode latent node embeddings into physical quantities of interest
         return self.decoder(x)
     
-    def loss(self, pred: torch.Tensor, inputs, split: str) -> torch.Tensor:
+    def loss(self, pred: torch.Tensor, inputs: Data, split: str) -> torch.Tensor:
         """Calculate the loss for the given prediction and inputs."""
         # define the node types that we calculate loss for
         normal=torch.tensor(0)
@@ -117,21 +115,23 @@ class MeshGraphNet(pl.LightningModule):
         
         return loss
 
-    def training_step(self, batch, batch_idx: int):
+    def training_step(self, batch: Data, batch_idx: int) -> torch.Tensor:
         """Training step of the model."""
         pred = self(batch, split='train')
         loss = self.loss(pred, batch, split='train')
         self.log('train/loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
 
-    def validation_step(self, batch, batch_idx: int):
+    def validation_step(self, batch: Data, batch_idx: int) -> torch.Tensor:
         """Validation step of the model."""
         if self.trainer.sanity_checking:
             self.load_stats()
         pred = self(batch, split='val')
         loss = self.loss(pred, batch, split='val')
         self.log('valid/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        return loss
 
-    def test_step(self, batch, batch_idx: int):
+    def test_step(self, batch: Data, batch_idx: int) -> None:
         """Test step of the model."""
         self.load_stats()
 
@@ -144,16 +144,28 @@ class MeshGraphNet(pl.LightningModule):
         eval = copy.deepcopy(batch)
 
         pred = self(batch, split='test')
+
         # pred gives the learnt accelaration between two timsteps
         # next_vel = curr_vel + pred * delta_t  
         viz.x[:, 0:2] = batch.x[:, 0:2] + pred[:] * self.dt
         gs.x[:, 0:2] = batch.x[:, 0:2] + batch.y * self.dt
         # gs_data - viz_data = error_data
         eval.x[:, 0:2] = (viz.x[:, 0:2] - gs.x[:, 0:2])
+
+        data_list_viz = []
+        data_list_gs = []
+        data_list_eval = []
+        x_sizes = (batch.ptr[1:] - batch.ptr[:-1]).tolist()
+        mesh_pos_sizes = [int(batch.mesh_pos.shape[0]/(self.time_step_lim-1)) for i in range(self.time_step_lim-1)]
+        cells_sizes = [int(batch.cells.shape[0]/(self.time_step_lim-1)) for i in range(self.time_step_lim-1)]
+        for x_viz, x_gs, x_eval, mesh_pos, cells in zip(viz.x.split(x_sizes), gs.x.split(x_sizes), eval.x.split(x_sizes), batch.mesh_pos.split(mesh_pos_sizes), batch.cells.split(cells_sizes)):
+            data_list_viz.append(Data(x=x_viz[:, 0:2], mesh_pos=mesh_pos, cells=cells))
+            data_list_gs.append(Data(x=x_gs[:, 0:2]))
+            data_list_eval.append(Data(x=x_eval[:, 0:2]))
     
-        self.make_animation(gs, viz, eval, path=osp.join(self.logs, self.version), name='x_velocity', skip=1, save_anim=True, plot_variables=False)
+        make_animation(data_list_gs, data_list_viz, data_list_eval, path=osp.join(self.logs, self.version), name='x_velocity', skip=1, save_anim=True, plot_variables=False)
     
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[LRScheduler]]]:
         """Configure the optimizer and the learning rate scheduler."""
         optimizer = self.optimizer(self.parameters())
 
@@ -162,83 +174,6 @@ class MeshGraphNet(pl.LightningModule):
         else:
             lr_scheduler = self.lr_scheduler(optimizer)
             return [optimizer], [lr_scheduler]
-        
-    def make_animation(self, gs, pred, evl, path, name , skip = 2, save_anim = True, plot_variables = False):
-        '''
-        input gs is a dataloader and each entry contains attributes of many timesteps.
-
-        '''
-        print('Generating velocity fields...')
-        fig, axes = plt.subplots(3, 1, figsize=(20, 16))
-        num_steps = len(gs.ptr) # for a single trajectory
-        num_frames = num_steps // skip
-        print(num_steps)
-        def animate(num):
-            step = (num*skip) % num_steps
-            traj = 0
-
-            bb_min = gs[0].x[:, 0:2].min() # first two columns are velocity
-            bb_max = gs[0].x[:, 0:2].max() # use max and min velocity of gs dataset at the first step for both gs and prediction plots
-            bb_min_evl = evl[0].x[:, 0:2].min()  # first two columns are velocity
-            bb_max_evl = evl[0].x[:, 0:2].max()  # use max and min velocity of gs dataset at the first step for both gs and prediction plots
-            count = 0
-
-            for ax in axes:
-                ax.cla()
-                ax.set_aspect('equal')
-                ax.set_axis_off()
-                
-                pos = gs[step].mesh_pos 
-                faces = gs[step].cells
-                if (count == 0):
-                    # ground truth
-                    velocity = gs[step].x[:, 0:2]
-                    title = 'Ground truth:'
-                elif (count == 1):
-                    velocity = pred[step].x[:, 0:2]
-                    title = 'Prediction:'
-                else: 
-                    velocity = evl[step].x[:, 0:2]
-                    title = 'Error: (Prediction - Ground truth)'
-
-                triang = mtri.Triangulation(pos[:, 0], pos[:, 1], faces)
-                if (count <= 1):
-                    # absolute values
-                    
-                    mesh_plot = ax.tripcolor(triang, velocity[:, 0], vmin= bb_min, vmax=bb_max,  shading='flat' ) # x-velocity
-                    ax.triplot(triang, 'ko-', ms=0.5, lw=0.3)
-                else:
-                    # error: (pred - gs)/gs
-                    mesh_plot = ax.tripcolor(triang, velocity[:, 0], vmin= bb_min_evl, vmax=bb_max_evl, shading='flat' ) # x-velocity
-                    ax.triplot(triang, 'ko-', ms=0.5, lw=0.3)
-                    #ax.triplot(triang, lw=0.5, color='0.5')
-
-                ax.set_title('{} Trajectory {} Step {}'.format(title, traj, step), fontsize = '20')
-                #ax.color
-
-                #if (count == 0):
-                divider = make_axes_locatable(ax)
-                cax = divider.append_axes('right', size='5%', pad=0.05)
-                clb = fig.colorbar(mesh_plot, cax=cax, orientation='vertical')
-                clb.ax.tick_params(labelsize=20) 
-                
-                clb.ax.set_title('x velocity (m/s)',
-                                fontdict = {'fontsize': 20})
-                count += 1
-            return fig,
-
-        # Save animation for visualization
-        if not os.path.exists(path):
-            os.makedirs(path)
-        
-        if (save_anim):
-            gs_anim = animation.FuncAnimation(fig, animate, frames=num_frames, interval=1000)
-            writergif = animation.PillowWriter(fps=10) 
-            anim_path = os.path.join(path, '{}_anim.gif'.format(name))
-            gs_anim.save( anim_path, writer=writergif)
-            plt.show(block=True)
-        else:
-            pass
         
     def load_stats(self):
         """Load statistics from the dataset."""
@@ -321,26 +256,3 @@ class MeshGraphNet(pl.LightningModule):
             return x, edge_attr, labels
         else:
             raise ValueError('Invalid split name')
-        
-    def get_next_version(self) -> int:
-        """Get the next version number for the logger."""
-        log = logging.getLogger(__name__)
-        fs = get_filesystem(self.logs)
-
-        try:
-            listdir_info = fs.listdir(self.logs)
-        except OSError:
-            log.warning("Missing logger folder: %s", self.logs)
-            return 0
-
-        existing_versions = []
-        for listing in listdir_info:
-            d = listing["name"]
-            bn = os.path.basename(d)
-            if fs.isdir(d) and bn.startswith("version_"):
-                dir_ver = bn.split("_")[1].replace("/", "")
-                existing_versions.append(int(dir_ver))
-        if len(existing_versions) == 0:
-            return 0
-
-        return max(existing_versions) + 1
