@@ -51,6 +51,28 @@ def load_stats(
     return train_stats, val_stats, test_stats
 
 
+def normalize(
+        data: Union[torch.Tensor, List[torch.Tensor]],
+        mean: Union[torch.Tensor, List[torch.Tensor]],
+        std: Union[torch.Tensor, List[torch.Tensor]]
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+    """Normalize the data."""
+    if isinstance(data, list):
+        return [normalize(d, m, s) for d, m, s in zip(data, mean, std)]
+    return (data - mean) / std
+
+
+def unnormalize(
+        data: Union[torch.Tensor, List[torch.Tensor]],
+        mean: Union[torch.Tensor, List[torch.Tensor]],
+        std: Union[torch.Tensor, List[torch.Tensor]]
+    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+    """Normalize the data."""
+    if isinstance(data, list):
+        return [normalize(d, m, s) for d, m, s in zip(data, mean, std)]
+    return (data * std) + mean
+
+
 def get_next_version(logs: str) -> int:
     """Get the next version number for the logger."""
     log = logging.getLogger(__name__)
@@ -99,7 +121,8 @@ def make_animation(
         path: str,
         name: str,
         skip: int=2,
-        save_anim: bool=True
+        save_anim: bool=True,
+        time_step_limit: int=100
         ) -> None:
     """Input gs is a dataloader and each entry contains attributes of many timesteps."""
     print('Generating velocity fields...')
@@ -107,11 +130,11 @@ def make_animation(
     num_steps = len(gs) # for a single trajectory
     num_frames = num_steps // skip
     def animate(num):
-        print(num_steps)
         step = (num*skip) % num_steps
+        progressBar(step, time_step_limit)
         traj = 0
 
-        bb_min = gs[0].x[:, 0:2].cpu().min() # first two columns are velocity
+        bb_min = gs[0].x[:, 0:2].min() # first two columns are velocity
         bb_max = gs[0].x[:, 0:2].max() # use max and min velocity of gs dataset at the first step for both gs and prediction plots
         bb_min_evl = evl[0].x[:, 0:2].min()  # first two columns are velocity
         bb_max_evl = evl[0].x[:, 0:2].max()  # use max and min velocity of gs dataset at the first step for both gs and prediction plots
@@ -135,15 +158,15 @@ def make_animation(
                 velocity = evl[step].x[:, 0:2]
                 title = 'Error: (Prediction - Ground truth)'
 
-            triang = mtri.Triangulation(pos[:, 0], pos[:, 1], faces)
+            triang = mtri.Triangulation(pos[:, 0].cpu(), pos[:, 1].cpu(), faces.cpu())
             if (count <= 1):
                 # absolute values
                 
-                mesh_plot = ax.tripcolor(triang, velocity[:, 0], vmin= bb_min, vmax=bb_max,  shading='flat' ) # x-velocity
+                mesh_plot = ax.tripcolor(triang, velocity[:, 0].cpu(), vmin= bb_min, vmax=bb_max,  shading='flat' ) # x-velocity
                 ax.triplot(triang, 'ko-', ms=0.5, lw=0.3)
             else:
                 # error: (pred - gs)/gs
-                mesh_plot = ax.tripcolor(triang, velocity[:, 0], vmin= bb_min_evl, vmax=bb_max_evl, shading='flat' ) # x-velocity
+                mesh_plot = ax.tripcolor(triang, velocity[:, 0].cpu(), vmin= bb_min_evl, vmax=bb_max_evl, shading='flat' ) # x-velocity
                 ax.triplot(triang, 'ko-', ms=0.5, lw=0.3)
                 #ax.triplot(triang, lw=0.5, color='0.5')
 

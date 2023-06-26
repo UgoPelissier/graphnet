@@ -3,7 +3,7 @@ from typing import Optional, List, Tuple, Union
 import os.path as osp
 import json
 
-from utils.utils import load_stats, get_next_version, make_animation
+from utils.utils import normalize, unnormalize, load_stats, get_next_version, make_animation
 from model.processor import ProcessorLayer
 
 import torch
@@ -80,7 +80,14 @@ class MeshGraphNet(pl.LightningModule):
         """
         x, edge_index, edge_attr = batch.x, batch.edge_index.long(), batch.edge_attr
 
-        x, edge_attr, _ = self.normalize(x=x, edge_attr=edge_attr, labels=None, split=split)
+        if split == 'train':
+            x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_train, self.mean_vec_edge_train], std=[self.std_vec_x_train, self.std_vec_edge_train])
+        elif split == 'val':
+            x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_val, self.mean_vec_edge_val], std=[self.std_vec_x_val, self.std_vec_edge_val])
+        elif split == 'test':
+            x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_test, self.mean_vec_edge_test], std=[self.std_vec_x_test, self.std_vec_edge_test])
+        else:
+            raise ValueError(f'Invalid split: {split}')
 
         # step 1: encode node/edge features into latent node/edge embeddings
         x = self.node_encoder(x) # output shape is the specified hidden dimension
@@ -105,7 +112,14 @@ class MeshGraphNet(pl.LightningModule):
                                    (torch.argmax(inputs.x[:,2:],dim=1)==outflow))
 
         # normalize labels with dataset statistics
-        _, _, labels = self.normalize(x=None, edge_attr=None, labels=inputs.y, split=split)
+        if split == 'train':
+            labels = normalize(data=labels, mean=self.mean_vec_y_train, std=self.std_vec_y_train)
+        elif split == 'val':
+            labels = normalize(data=labels, mean=self.mean_vec_y_val, std=self.std_vec_y_val)
+        elif split == 'test':
+            labels = normalize(data=labels, mean=self.mean_vec_y_test, std=self.std_vec_y_test)
+        else:
+            raise ValueError(f'Invalid split: {split}')
 
         # find sum of square errors
         error = torch.sum((labels-pred)**2, dim=1)
@@ -163,7 +177,7 @@ class MeshGraphNet(pl.LightningModule):
             data_list_gs.append(Data(x=x_gs[:, 0:2]))
             data_list_eval.append(Data(x=x_eval[:, 0:2]))
     
-        make_animation(data_list_gs, data_list_viz, data_list_eval, path=osp.join(self.logs, self.version), name='x_velocity', skip=1, save_anim=True, plot_variables=False)
+        make_animation(gs=data_list_gs, pred=data_list_viz, evl=data_list_eval, path=osp.join(self.logs, self.version), name='x_velocity', skip=1, save_anim=True, time_step_limit=self.time_step_lim)
     
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[LRScheduler]]]:
         """Configure the optimizer and the learning rate scheduler."""
@@ -181,59 +195,3 @@ class MeshGraphNet(pl.LightningModule):
         self.mean_vec_x_train, self.std_vec_x_train, self.mean_vec_edge_train, self.std_vec_edge_train, self.mean_vec_y_train, self.std_vec_y_train = train_stats
         self.mean_vec_x_val, self.std_vec_x_val, self.mean_vec_edge_val, self.std_vec_edge_val, self.mean_vec_y_val, self.std_vec_y_val = val_stats
         self.mean_vec_x_test, self.std_vec_x_test, self.mean_vec_edge_test, self.std_vec_edge_test, self.mean_vec_y_test, self.std_vec_y_test = test_stats
-        
-    def normalize(self, x: torch.Tensor, edge_attr: torch.Tensor, labels: torch.Tensor, split) -> torch.Tensor:
-        if split == 'train':
-            if x is not None:
-                x = (x-self.mean_vec_x_train)/self.std_vec_x_train
-            if edge_attr is not None:
-                edge_attr = (edge_attr-self.mean_vec_edge_train)/self.std_vec_edge_train    
-            if labels is not None:
-                labels = (labels-self.mean_vec_y_train)/self.std_vec_y_train
-            return x, edge_attr, labels
-        elif split == 'val':
-            if x is not None:
-                x = (x-self.mean_vec_x_val)/self.std_vec_x_val
-            if edge_attr is not None:
-                edge_attr = (edge_attr-self.mean_vec_edge_val)/self.std_vec_edge_val
-            if labels is not None:
-                labels = (labels-self.mean_vec_y_val)/self.std_vec_y_val
-            return x, edge_attr, labels
-        elif split == 'test':
-            if x is not None:
-                x = (x-self.mean_vec_x_test)/self.std_vec_x_test
-            if edge_attr is not None:
-                edge_attr = (edge_attr-self.mean_vec_edge_test)/self.std_vec_edge_test
-            if labels is not None:
-                labels = (labels-self.mean_vec_y_test)/self.std_vec_y_test
-            return x, edge_attr, labels
-        else:
-            raise ValueError('Invalid split name')
-        
-    def unnormalize(self, x: torch.Tensor, edge_attr: torch.Tensor, labels: torch.Tensor, split) -> torch.Tensor:
-        if split == 'train':
-            if x is not None:
-                x = x*self.std_vec_x_train+self.mean_vec_x_train
-            if edge_attr is not None:
-                edge_attr = edge_attr*self.std_vec_edge_train+self.mean_vec_edge_train
-            if labels is not None:
-                labels = labels*self.std_vec_y_train+self.mean_vec_y_train
-            return x, edge_attr, labels
-        elif split == 'val':
-            if x is not None:
-                x = x*self.std_vec_x_val+self.mean_vec_x_val
-            if edge_attr is not None:
-                edge_attr = edge_attr*self.std_vec_edge_val+self.mean_vec_edge_val
-            if labels is not None:
-                labels = labels*self.std_vec_y_val+self.mean_vec_y_val
-            return x, edge_attr, labels
-        elif split == 'test':
-            if x is not None:
-                x = x*self.std_vec_x_test+self.mean_vec_x_test
-            if edge_attr is not None:
-                edge_attr = edge_attr*self.std_vec_edge_test+self.mean_vec_edge_test
-            if labels is not None:
-                labels = labels*self.std_vec_y_test+self.mean_vec_y_test
-            return x, edge_attr, labels
-        else:
-            raise ValueError('Invalid split name')
