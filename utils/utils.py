@@ -115,9 +115,9 @@ def progressBar(
 
 
 def make_animation(
-        gs: List[Data],
-        pred: List[Data],
-        evl: List[Data],
+        ground_truth: List[Data],
+        prediction: List[Data],
+        error: List[Data],
         path: str,
         name: str,
         skip: int=2,
@@ -127,17 +127,17 @@ def make_animation(
     """Input gs is a dataloader and each entry contains attributes of many timesteps."""
     print('Generating velocity fields...')
     fig, axes = plt.subplots(3, 1, figsize=(20, 16))
-    num_steps = len(gs) # for a single trajectory
+    num_steps = len(ground_truth) # for a single trajectory
     num_frames = num_steps // skip
     def animate(num):
         step = (num*skip) % num_steps
         progressBar(step, time_step_limit)
         traj = 0
 
-        bb_min = gs[0].x[:, 0:2].min() # first two columns are velocity
-        bb_max = gs[0].x[:, 0:2].max() # use max and min velocity of gs dataset at the first step for both gs and prediction plots
-        bb_min_evl = evl[0].x[:, 0:2].min()  # first two columns are velocity
-        bb_max_evl = evl[0].x[:, 0:2].max()  # use max and min velocity of gs dataset at the first step for both gs and prediction plots
+        bb_min = ground_truth[0].x[:, 0:2].min() # first two columns are velocity
+        bb_max = ground_truth[0].x[:, 0:2].max() # use max and min velocity of gs dataset at the first step for both gs and prediction plots
+        bb_min_evl = error[0].x[:, 0:2].min()  # first two columns are velocity
+        bb_max_evl = error[0].x[:, 0:2].max()  # use max and min velocity of gs dataset at the first step for both gs and prediction plots
         count = 0
 
         for ax in axes:
@@ -145,17 +145,17 @@ def make_animation(
             ax.set_aspect('equal')
             ax.set_axis_off()
             
-            pos = pred[step].mesh_pos 
-            faces = pred[step].cells
+            pos = ground_truth[step].mesh_pos 
+            faces = ground_truth[step].cells
             if (count == 0):
                 # ground truth
-                velocity = gs[step].x[:, 0:2]
+                velocity = ground_truth[step].x[:, 0:2]
                 title = 'Ground truth:'
             elif (count == 1):
-                velocity = pred[step].x[:, 0:2]
+                velocity = prediction[step].x[:, 0:2]
                 title = 'Prediction:'
             else: 
-                velocity = evl[step].x[:, 0:2]
+                velocity = error[step].x[:, 0:2]
                 title = 'Error: (Prediction - Ground truth)'
 
             triang = mtri.Triangulation(pos[:, 0].cpu(), pos[:, 1].cpu(), faces.cpu())
