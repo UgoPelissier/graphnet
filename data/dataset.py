@@ -172,7 +172,7 @@ class MeshDataset(Dataset):
         for idx, data in enumerate(ds):
             if (idx==self.idx_lim):
                 break
-            progressBar(idx, self.time_step_lim, prefix=f'{self.split} dataset')
+            progressBar(idx, self.idx_lim, prefix=f'{self.split} dataset')
             # convert tensors from tf to pytorch
             d = {}
             for key, value in data.items():
@@ -202,7 +202,7 @@ class MeshDataset(Dataset):
                 y = ((v_tp1-v_t)/meta['dt']).type(torch.float)
 
                 self.update_stats(x, edge_attr, y)
-                data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, p=d['pressure'][t, :, :], cells=d['cells'], mesh_pos=d['mesh_pos']))
+                data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=d['cells'], mesh_pos=d['mesh_pos'], n_points=x.shape[0], n_edge=edge_index.shape[1]))
 
         torch.save(data_list, osp.join(self.processed_dir, f'{self.split}.pt'))
         self.save_stats()
