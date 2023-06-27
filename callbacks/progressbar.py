@@ -1,7 +1,7 @@
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBar, RichProgressBarTheme
 import lightning.pytorch as pl
 
-green_theme = RichProgressBarTheme(description="green_yellow",
+green_theme = RichProgressBarTheme(description="grey82",
                                    progress_bar="green1",
                                    progress_bar_finished="green1",
                                    batch_progress="green_yellow",
@@ -20,5 +20,3 @@ class MyProgressBar(RichProgressBar):
         theme: RichProgressBarTheme = green_theme
     ) -> None:
         super().__init__(refresh_rate, leave, theme)
-
-    
