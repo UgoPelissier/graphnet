@@ -178,9 +178,6 @@ class MeshDataset(Dataset):
             for key, value in data.items():
                     d[key] = torch.from_numpy(value.numpy()).squeeze(dim=0)
             # extract data from each time step
-            n_points = 0
-            n_edges = 0
-            n_cells = 0
             for t in range(self.time_steps-1):
                 if (t==self.time_step_lim):
                     break
@@ -205,10 +202,7 @@ class MeshDataset(Dataset):
                 y = ((v_tp1-v_t)/meta['dt']).type(torch.float)
 
                 self.update_stats(x, edge_attr, y)
-                n_points += x.shape[0]
-                n_edges += edge_index.shape[1]
-                n_cells += d['cells'].shape[0]
-                data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=d['cells'], mesh_pos=d['mesh_pos'], n_points=n_points, n_edges=n_edges, n_cells=n_cells))
+                data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=d['cells'], mesh_pos=d['mesh_pos'], n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=d['cells'].shape[0]))
 
         torch.save(data_list, osp.join(self.processed_dir, f'{self.split}.pt'))
         self.save_stats()
