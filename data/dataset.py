@@ -37,6 +37,7 @@ class MeshDataset(Dataset):
                  time_steps: int,
                  idx_lim_train: int,
                  idx_lim_val: int,
+                 idx_lim_test: int,
                  time_step_lim: int,
                  split: str,
                  transform: Optional[Callable] = None,
@@ -51,9 +52,9 @@ class MeshDataset(Dataset):
         if self.split == 'train':
             self.idx_lim = idx_lim_train
         elif self.split == 'valid':
-             self.idx_lim = idx_lim_val
+            self.idx_lim = idx_lim_val
         elif self.split == 'test':
-            self.idx_lim = 1
+            self.idx_lim = idx_lim_test
         else:
             raise ValueError(f"Invalid split: {self.split}")
         self.time_step_lim = time_step_lim
@@ -169,9 +170,9 @@ class MeshDataset(Dataset):
         ds = ds.map(functools.partial(self._parse, meta=meta), num_parallel_calls=8)
 
         data_list = []
-        print(f'Processing {self.split} dataset ...')
-        for idx, data in enumerate(ds):
-            with alive_bar(total=self.idx_lim) as bar:
+        print(f'{self.split} dataset')
+        with alive_bar(total=self.idx_lim) as bar:
+            for idx, data in enumerate(ds):
                 if (idx==self.idx_lim):
                     break
                 bar()

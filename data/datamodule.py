@@ -10,6 +10,7 @@ class MeshDataModule(pl.LightningDataModule):
                  time_steps: int,
                  idx_lim_train: int,
                  idx_lim_val: int,
+                 idx_lim_test: int,
                  time_step_lim: int,
                  batch_size_train: int,
                  batch_size_valid: int
@@ -21,13 +22,14 @@ class MeshDataModule(pl.LightningDataModule):
         self.time_steps = time_steps
         self.idx_lim_train = idx_lim_train
         self.idx_lim_val = idx_lim_val
+        self.idx_lim_test = idx_lim_test
         self.time_step_lim = time_step_lim
         self.batch_size_train = batch_size_train
         self.batch_size_valid = batch_size_valid
         
-        self.train_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.time_step_lim, split="train")
-        self.valid_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.time_step_lim, split="valid")
-        self.test_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.time_step_lim, split="test")
+        self.train_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.idx_lim_test, self.time_step_lim, split="train")
+        self.valid_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.idx_lim_test, self.time_step_lim, split="valid")
+        self.test_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.idx_lim_test, self.time_step_lim, split="test")
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, num_workers=8)
