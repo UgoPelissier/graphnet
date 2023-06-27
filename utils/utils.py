@@ -1,8 +1,10 @@
+from functools import partial
 import sys
 import os
 import os.path as osp
 import logging
 from typing import List, Tuple, Union
+from alive_progress import alive_bar
 
 from matplotlib import pyplot as plt
 from matplotlib import tri as mtri
@@ -129,9 +131,9 @@ def make_animation(
     fig, axes = plt.subplots(3, 1, figsize=(20, 16))
     num_steps = len(ground_truth) # for a single trajectory
     num_frames = num_steps // skip
-    def animate(num):
+    def animate(num, bar):
         step = (num*skip) % num_steps
-        progressBar(step, time_step_limit)
+        bar()
         traj = 0
 
         bb_min = ground_truth[0].x[:, 0:2].min() # first two columns are velocity
@@ -188,10 +190,11 @@ def make_animation(
         os.makedirs(path)
     
     if (save_anim):
-        gs_anim = animation.FuncAnimation(fig, animate, frames=num_frames, interval=1000)
-        writergif = animation.PillowWriter(fps=10) 
-        anim_path = os.path.join(path, '{}.gif'.format(name))
-        gs_anim.save(anim_path, writer=writergif)
-        plt.show(block=True)
+        with alive_bar(total=num_steps) as bar:
+            gs_anim = animation.FuncAnimation(fig, partial(animate, bar=bar), frames=num_frames, interval=1000)
+            writergif = animation.PillowWriter(fps=10) 
+            anim_path = os.path.join(path, '{}.gif'.format(name))
+            gs_anim.save(anim_path, writer=writergif)
+            plt.show(block=True)
     else:
         pass
