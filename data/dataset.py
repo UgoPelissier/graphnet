@@ -8,6 +8,7 @@ import json
 import tensorflow as tf
 import functools
 import enum
+from utils.utils import progressBar
 
 
 class NodeType(enum.IntEnum):
@@ -167,10 +168,11 @@ class MeshDataset(Dataset):
         ds = ds.map(functools.partial(self._parse, meta=meta), num_parallel_calls=8)
 
         data_list = []
+        print(f'Processing {self.split} dataset ...')
         for idx, data in enumerate(ds):
             if (idx==self.idx_lim):
                 break
-            print(f'Processing trajectory {idx+1}')
+            progressBar(idx, self.time_step_lim, prefix=f'{self.split} dataset')
             # convert tensors from tf to pytorch
             d = {}
             for key, value in data.items():
