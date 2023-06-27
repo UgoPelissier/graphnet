@@ -108,9 +108,9 @@ def progressBar(
     percentage = round(100.0 * count_value/float(total),1)
     bar = '=' * filled_up_Length + ' ' * (bar_length - filled_up_Length)
     if (percentage == 100.0):
-        sys.stdout.write('%s [%s] %s%s\n' %(prefix, bar, percentage, '%'))
+        sys.stdout.write('%s [%s] %s%s\n' %(prefix, bar, percentage, ' %'))
     else:
-        sys.stdout.write('%s [%s] %s%s\r' %(prefix, bar, percentage, '%'))
+        sys.stdout.write('%s [%s] %s%s\r' %(prefix, bar, percentage, ' %'))
     sys.stdout.flush()
 
 
