@@ -190,7 +190,7 @@ def make_animation(
         os.makedirs(path)
     
     if (save_anim):
-        with alive_bar(total=num_steps) as bar:
+        with alive_bar(total=num_steps+1) as bar:
             gs_anim = animation.FuncAnimation(fig, partial(animate, bar=bar), frames=num_frames, interval=1000)
             writergif = animation.PillowWriter(fps=10) 
             anim_path = os.path.join(path, '{}.gif'.format(name))
