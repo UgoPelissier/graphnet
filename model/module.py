@@ -2,6 +2,7 @@ import copy
 from typing import Optional, List, Tuple, Union
 import os.path as osp
 import json
+import numpy as np
 
 from utils.utils import normalize, unnormalize, load_stats, get_next_version, make_animation
 from data.dataset import NodeType
@@ -32,6 +33,7 @@ class MeshGraphNet(pl.LightningModule):
             output_dim: int,
             optimizer: OptimizerCallable,
             time_step_lim: int,
+            animate: bool=False,
             lr_scheduler: Optional[LRSchedulerCallable] = None
         ) -> None:
         super().__init__()
@@ -69,6 +71,7 @@ class MeshGraphNet(pl.LightningModule):
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.time_step_lim = time_step_lim
+        self.animate = animate
         self.version = f'version_{get_next_version(self.logs)}'
 
         with open(osp.join(self.dataset, 'raw', 'meta.json'), 'r') as fp:
@@ -151,11 +154,13 @@ class MeshGraphNet(pl.LightningModule):
         self.load_stats()
 
         pred = self(batch, split='test')
-        loss = self.loss(pred, batch, split='val')
+        loss = self.loss(pred, batch, split='test')
         self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
-        pred = unnormalize(data=pred, mean=self.mean_vec_y_test, std=self.std_vec_y_test)
-        self.vizualise(batch, pred, batch_idx)
+        data_list_true, data_list_prediction, data_list_error = self.rollout(batch, batch_idx)
+
+        if self.animate:
+            make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True, time_step_limit=self.time_step_lim)
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[LRScheduler]]]:
         """Configure the optimizer and the learning rate scheduler."""
@@ -174,28 +179,38 @@ class MeshGraphNet(pl.LightningModule):
         self.mean_vec_x_val, self.std_vec_x_val, self.mean_vec_edge_val, self.std_vec_edge_val, self.mean_vec_y_val, self.std_vec_y_val = val_stats
         self.mean_vec_x_test, self.std_vec_x_test, self.mean_vec_edge_test, self.std_vec_edge_test, self.mean_vec_y_test, self.std_vec_y_test = test_stats
 
-    def vizualise(self, batch: Data, pred: torch.Tensor, batch_idx: int) -> None:
-        true = copy.deepcopy(batch)
-        prediction = copy.deepcopy(batch)
-        error = copy.deepcopy(batch)
-        
-        true.x[:, 0:2] = batch.x[:, 0:2] + batch.y * self.dt
-        # pred gives the learnt accelaration between two timsteps
-        # next_vel = curr_vel + pred * delta_t  
-        prediction.x[:, 0:2] = batch.x[:, 0:2] + pred[:] * self.dt
-        # error = true - prediction
-        error.x[:, 0:2] = (prediction.x[:, 0:2] - true.x[:, 0:2])
+    def rollout(self, batch: Data, batch_idx: int) -> None:
+        """Rollout trajectory."""
+        self.load_stats()
 
         data_list_true = []
         data_list_prediction = []
         data_list_error = []
+
         x_sizes = (batch.ptr[1:] - batch.ptr[:-1]).tolist()
-        mesh_pos_sizes = [int(batch.mesh_pos.shape[0]/(self.time_step_lim-1)) for i in range(self.time_step_lim-1)]
-        cells_sizes = [int(batch.cells.shape[0]/(self.time_step_lim-1)) for i in range(self.time_step_lim-1)]
-        for x_true, x_pred, x_error, mesh_pos, cells in zip(true.x.split(x_sizes), prediction.x.split(x_sizes), error.x.split(x_sizes), batch.mesh_pos.split(mesh_pos_sizes), batch.cells.split(cells_sizes)):
-            data_list_true.append(Data(x=x_true[:, 0:2], mesh_pos=mesh_pos, cells=cells))
-            data_list_prediction.append(Data(x=x_pred[:, 0:2]))
-            data_list_error.append(Data(x=x_error[:, 0:2]))
-    
-        make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True, time_step_limit=self.time_step_lim)
-    
+        edge_sizes = batch.n_edges.tolist()
+        cells_sizes = batch.n_cells.tolist()
+        i = 0
+        for x, edge_index, edge_attr, y, mesh_pos, cells in zip(batch.x.split(x_sizes), torch.transpose(batch.edge_index, 0, 1).split(edge_sizes), batch.edge_attr.split(edge_sizes), batch.y.split(x_sizes), batch.mesh_pos.split(x_sizes), batch.cells.split(cells_sizes)):
+            pred = self(Data(x=x, edge_index=torch.transpose(edge_index, 0, 1)-np.sum(np.array(x_sizes)[:i]), edge_attr=edge_attr), split='test')
+            pred = unnormalize(data=pred, mean=self.mean_vec_y_test, std=self.std_vec_y_test)
+
+            v = x[:, 0:2]
+            if (i==0):
+                prediction = v
+
+            true = copy.deepcopy(v)
+            prediction = copy.deepcopy(v)
+            error = copy.deepcopy(v)
+
+            true = v + y * self.dt
+            prediction += pred * self.dt
+            error = prediction - true
+
+            data_list_true.append(Data(x=true, mesh_pos=mesh_pos, cells=cells))
+            data_list_prediction.append(Data(x=prediction))
+            data_list_error.append(Data(x=error))
+
+            i += 1
+
+        return data_list_true, data_list_prediction, data_list_error
