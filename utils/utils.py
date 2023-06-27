@@ -123,8 +123,7 @@ def make_animation(
         path: str,
         name: str,
         skip: int=2,
-        save_anim: bool=True,
-        time_step_limit: int=100
+        save_anim: bool=True
         ) -> None:
     """Input gs is a dataloader and each entry contains attributes of many timesteps."""
     print('Generating velocity fields...')
