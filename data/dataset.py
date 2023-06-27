@@ -9,6 +9,7 @@ import tensorflow as tf
 import functools
 import enum
 from utils.utils import progressBar
+from alive_progress import alive_bar
 
 
 class NodeType(enum.IntEnum):
@@ -170,39 +171,40 @@ class MeshDataset(Dataset):
         data_list = []
         print(f'Processing {self.split} dataset ...')
         for idx, data in enumerate(ds):
-            if (idx==self.idx_lim):
-                break
-            progressBar(idx+1, self.idx_lim, prefix=f'{self.split} dataset')
-            # convert tensors from tf to pytorch
-            d = {}
-            for key, value in data.items():
-                    d[key] = torch.from_numpy(value.numpy()).squeeze(dim=0)
-            # extract data from each time step
-            for t in range(self.time_steps-1):
-                if (t==self.time_step_lim):
+            with alive_bar(total=self.idx_lim) as bar:
+                if (idx==self.idx_lim):
                     break
-                # get node features
-                v = d['velocity'][t, :, :]
-                node_type = torch.tensor(np.array(tf.one_hot(tf.convert_to_tensor(data['node_type'][0,:,0]), NodeType.SIZE)))
-                x = torch.cat((v, node_type),dim=-1).type(torch.float)
+                bar()
+                # convert tensors from tf to pytorch
+                d = {}
+                for key, value in data.items():
+                        d[key] = torch.from_numpy(value.numpy()).squeeze(dim=0)
+                # extract data from each time step
+                for t in range(self.time_steps-1):
+                    if (t==self.time_step_lim):
+                        break
+                    # get node features
+                    v = d['velocity'][t, :, :]
+                    node_type = torch.tensor(np.array(tf.one_hot(tf.convert_to_tensor(data['node_type'][0,:,0]), NodeType.SIZE)))
+                    x = torch.cat((v, node_type),dim=-1).type(torch.float)
 
-                # get edge indices in COO format
-                edge_index = self.triangles_to_edges(d['cells']).long()
+                    # get edge indices in COO format
+                    edge_index = self.triangles_to_edges(d['cells']).long()
 
-                # get edge attributes
-                u_i = d['mesh_pos'][edge_index[0]]
-                u_j = d['mesh_pos'][edge_index[1]]
-                u_ij = u_i - u_j
-                u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
-                edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
+                    # get edge attributes
+                    u_i = d['mesh_pos'][edge_index[0]]
+                    u_j = d['mesh_pos'][edge_index[1]]
+                    u_ij = u_i - u_j
+                    u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
+                    edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
 
-                # node outputs, for training (velocity)
-                v_t = d['velocity'][t, :, :]
-                v_tp1 = d['velocity'][t+1, :, :]
-                y = ((v_tp1-v_t)/meta['dt']).type(torch.float)
+                    # node outputs, for training (velocity)
+                    v_t = d['velocity'][t, :, :]
+                    v_tp1 = d['velocity'][t+1, :, :]
+                    y = ((v_tp1-v_t)/meta['dt']).type(torch.float)
 
-                self.update_stats(x, edge_attr, y)
-                data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=d['cells'], mesh_pos=d['mesh_pos'], n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=d['cells'].shape[0]))
+                    self.update_stats(x, edge_attr, y)
+                    data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=d['cells'], mesh_pos=d['mesh_pos'], n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=d['cells'].shape[0]))
 
         torch.save(data_list, osp.join(self.processed_dir, f'{self.split}.pt'))
         self.save_stats()
