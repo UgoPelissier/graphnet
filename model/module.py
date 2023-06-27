@@ -32,7 +32,6 @@ class MeshGraphNet(pl.LightningModule):
             hidden_dim: int,
             output_dim: int,
             optimizer: OptimizerCallable,
-            time_step_lim: int,
             animate: bool=False,
             lr_scheduler: Optional[LRSchedulerCallable] = None
         ) -> None:
@@ -46,10 +45,18 @@ class MeshGraphNet(pl.LightningModule):
         # encoder convert raw inputs into latent embeddings
         self.node_encoder = Sequential(Linear(input_dim_node, hidden_dim),
                                        ReLU(),
-                                       Linear( hidden_dim, hidden_dim),
+                                       Linear(hidden_dim, hidden_dim),
+                                       ReLU(),
+                                       Linear(hidden_dim, hidden_dim),
+                                       ReLU(),
+                                       Linear(hidden_dim, hidden_dim),
                                        LayerNorm(hidden_dim))
 
-        self.edge_encoder = Sequential(Linear(input_dim_edge , hidden_dim),
+        self.edge_encoder = Sequential(Linear(input_dim_edge, hidden_dim),
+                                       ReLU(),
+                                       Linear(hidden_dim, hidden_dim),
+                                       ReLU(),
+                                       Linear(hidden_dim, hidden_dim),
                                        ReLU(),
                                        Linear(hidden_dim, hidden_dim),
                                        LayerNorm(hidden_dim))
@@ -66,11 +73,14 @@ class MeshGraphNet(pl.LightningModule):
         # decoder: only for node embeddings
         self.decoder = Sequential(Linear(hidden_dim, hidden_dim),
                                   ReLU(),
+                                  Linear(hidden_dim, hidden_dim),
+                                  ReLU(),
+                                  Linear(hidden_dim, hidden_dim),
+                                  ReLU(),
                                   Linear(hidden_dim, output_dim))
 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
-        self.time_step_lim = time_step_lim
         self.animate = animate
         self.version = f'version_{get_next_version(self.logs)}'
 
@@ -160,7 +170,7 @@ class MeshGraphNet(pl.LightningModule):
         data_list_true, data_list_prediction, data_list_error = self.rollout(batch, batch_idx)
 
         if self.animate:
-            make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True, time_step_limit=self.time_step_lim)
+            make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True)
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[LRScheduler]]]:
         """Configure the optimizer and the learning rate scheduler."""
