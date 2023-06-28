@@ -1,5 +1,6 @@
 import os
 import os.path as osp
+import glob
 import torch
 from typing import Optional, Callable
 from torch_geometric.data import Dataset, Data, download_url
@@ -86,7 +87,7 @@ class MeshDataset(Dataset):
 
     @property
     def processed_file_names(self) -> list:
-        return ["train.pt", "valid.pt", "test.pt"]
+        return glob.glob(os.path.join(self.processed_dir, self.split, 'data_*.pt'))
     
     def download(self) -> None:
         print(f'Download dataset {self.dataset_name} to {self.raw_dir}')
@@ -161,6 +162,8 @@ class MeshDataset(Dataset):
 
     def process(self) -> None:
         """Process the dataset."""
+        os.makedirs(os.path.join(self.processed_dir, self.split), exist_ok=True)
+
         # load meta data
         with open(osp.join(self.raw_dir, 'meta.json'), 'r') as fp:
             meta = json.loads(fp.read())
@@ -205,14 +208,15 @@ class MeshDataset(Dataset):
                     y = ((v_tp1-v_t)/meta['dt']).type(torch.float)
 
                     self.update_stats(x, edge_attr, y)
-                    data_list.append(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=d['cells'], mesh_pos=d['mesh_pos'], n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=d['cells'].shape[0]))
 
-        torch.save(data_list, osp.join(self.processed_dir, f'{self.split}.pt'))
+                    torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=d['cells'], mesh_pos=d['mesh_pos'], n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=d['cells'].shape[0]),
+                                osp.join(self.processed_dir, self.split, f'data_{idx*self.time_step_lim+t}.pt'))
+                    
         self.save_stats()
 
     def len(self) -> int:
-        return self.idx_lim*(self.time_step_lim-1)
+        return len(self.processed_file_names)
     
     def get(self, idx: int) -> Data:
-        data = torch.load(osp.join(self.processed_dir, f'{self.split}.pt'))
-        return data[idx]
+        data = torch.load(os.path.join(self.processed_dir, self.split, f'data_{idx}.pt'))
+        return data
