@@ -31,11 +31,11 @@ class ProcessorLayer(MessagePassing):
         """
         reset parameters for stacked MLP layers
         """
-        self.edge_mlp[0].reset_parameters()
-        self.edge_mlp[2].reset_parameters()
+        self.edge_mlp[0].reset_parameters() # type: ignore
+        self.edge_mlp[2].reset_parameters() # type: ignore
 
-        self.node_mlp[0].reset_parameters()
-        self.node_mlp[2].reset_parameters()
+        self.node_mlp[0].reset_parameters() # type: ignore
+        self.node_mlp[2].reset_parameters() # type: ignore
 
     def forward(self, x, edge_index, edge_attr, size = None):
         """

@@ -11,7 +11,8 @@ from model.processor import ProcessorLayer
 import torch
 from torch.nn import Linear, Sequential, LayerNorm, ReLU
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler
+from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau
+from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 
 from torch_geometric.data import Data
 
@@ -172,7 +173,7 @@ class MeshGraphNet(pl.LightningModule):
         if self.animate:
             make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True)
 
-    def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[LRScheduler]]]:
+    def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
         optimizer = self.optimizer(self.parameters())
 
@@ -189,7 +190,7 @@ class MeshGraphNet(pl.LightningModule):
         self.mean_vec_x_val, self.std_vec_x_val, self.mean_vec_edge_val, self.std_vec_edge_val, self.mean_vec_y_val, self.std_vec_y_val = val_stats
         self.mean_vec_x_test, self.std_vec_x_test, self.mean_vec_edge_test, self.std_vec_edge_test, self.mean_vec_y_test, self.std_vec_y_test = test_stats
 
-    def rollout(self, batch: Data, batch_idx: int) -> None:
+    def rollout(self, batch: Data, batch_idx: int) -> Tuple[List[Data], List[Data], List[Data]]:
         """Rollout trajectory."""
         self.load_stats()
 

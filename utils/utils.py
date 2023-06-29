@@ -18,7 +18,7 @@ from lightning.fabric.utilities.cloud_io import get_filesystem
 
 def load_stats(
         dataset: str,
-        device: str
+        device: torch.device
         ) -> Tuple[Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
                    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor],
                    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
@@ -60,7 +60,7 @@ def normalize(
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
     """Normalize the data."""
     if isinstance(data, list):
-        return [normalize(d, m, s) for d, m, s in zip(data, mean, std)]
+        return [normalize(d, m, s) for d, m, s in zip(data, mean, std)] # type: ignore
     return (data - mean) / std
 
 
@@ -71,7 +71,7 @@ def unnormalize(
     ) -> Union[torch.Tensor, List[torch.Tensor]]:
     """Normalize the data."""
     if isinstance(data, list):
-        return [normalize(d, m, s) for d, m, s in zip(data, mean, std)]
+        return [normalize(d, m, s) for d, m, s in zip(data, mean, std)] # type: ignore
     return (data * std) + mean
 
 
@@ -193,7 +193,7 @@ def make_animation(
             gs_anim = animation.FuncAnimation(fig, partial(animate, bar=bar), frames=num_frames, interval=1000)
             writergif = animation.PillowWriter(fps=10) 
             anim_path = os.path.join(path, '{}.gif'.format(name))
-            gs_anim.save(anim_path, writer=writergif)
+            gs_anim.save(anim_path, writer=writergif) # type: ignore
             plt.show(block=True)
     else:
         pass
