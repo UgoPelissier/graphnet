@@ -174,11 +174,10 @@ class MeshDataset(Dataset):
 
         data_list = []
         print(f'{self.split} dataset')
-        with alive_bar(total=self.idx_lim) as bar:
+        with alive_bar(total=self.idx_lim*self.time_step_lim) as bar:
             for idx, data in enumerate(ds):
                 if (idx==self.idx_lim):
                     break
-                bar()
                 # convert tensors from tf to pytorch
                 d = {}
                 for key, value in data.items():
@@ -188,6 +187,7 @@ class MeshDataset(Dataset):
                     if (t==self.time_step_lim):
                         break
                     # get node features
+                    bar()
                     v = d['velocity'][t, :, :]
                     node_type = torch.tensor(np.array(tf.one_hot(tf.convert_to_tensor(data['node_type'][0,:,0]), NodeType.SIZE)))
                     x = torch.cat((v, node_type),dim=-1).type(torch.float)
