@@ -27,6 +27,7 @@ class MeshGraphNet(pl.LightningModule):
             path: str,
             dataset: str,
             logs: str,
+            noise_std: float,
             num_layers: int,
             input_dim_node: int,
             input_dim_edge: int,
@@ -42,6 +43,7 @@ class MeshGraphNet(pl.LightningModule):
         self.path = path
         self.dataset = dataset
         self.logs = logs
+        self.noise_std = noise_std
         self.num_layers = num_layers
 
         # encoder convert raw inputs into latent embeddings
@@ -100,6 +102,7 @@ class MeshGraphNet(pl.LightningModule):
         The return of processor is fed into the processor for generating new feature vectors
         """
         x, edge_index, edge_attr = batch.x, batch.edge_index.long(), batch.edge_attr
+        x += self.v_noise(batch, self.noise_std)
 
         if split == 'train':
             x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_train, self.mean_vec_edge_train], std=[self.std_vec_x_train, self.std_vec_edge_train])
@@ -228,3 +231,11 @@ class MeshGraphNet(pl.LightningModule):
             i += 1
 
         return data_list_true, data_list_prediction, data_list_error
+    
+    def v_noise(self, batch: Data, noise_std: float) -> torch.Tensor:
+        """Return noise to add to the velocity field."""
+        v = batch.x[:,:2]
+        v_noise = torch.normal(std=noise_std, mean=0.0, size=v.shape).to(self.device)
+        mask = torch.argmax(batch.x[:,2:],dim=1)==torch.tensor(NodeType.NORMAL)
+        v_noise[mask]=0
+        return v_noise

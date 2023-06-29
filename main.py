@@ -47,6 +47,7 @@ class MyLightningCLI(LightningCLI):
                 "model.path": "/home/eleve05/safran/graphnet/",
                 "model.dataset": "/home/eleve05/safran/graphnet/data/",
                 "model.logs": "/home/eleve05/safran/graphnet/logs/",
+                "model.noise_std": 2e-2,
                 "model.num_layers": 10,
                 "model.input_dim_node": 11,
                 "model.input_dim_edge": 3,
