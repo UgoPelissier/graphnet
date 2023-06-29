@@ -33,7 +33,8 @@ class MeshGraphNet(pl.LightningModule):
             hidden_dim: int,
             output_dim: int,
             optimizer: OptimizerCallable,
-            animate: bool=False,
+            test_indices: List[int],
+            animate: bool,
             lr_scheduler: Optional[LRSchedulerCallable] = None
         ) -> None:
         super().__init__()
@@ -82,6 +83,7 @@ class MeshGraphNet(pl.LightningModule):
 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
+        self.test_indices = test_indices
         self.animate = animate
         self.version = f'version_{get_next_version(self.logs)}'
 
@@ -164,14 +166,15 @@ class MeshGraphNet(pl.LightningModule):
         """Test step of the model."""
         self.load_stats()
 
-        pred = self(batch, split='test')
-        loss = self.loss(pred, batch, split='test')
-        self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+        if batch_idx in self.test_indices:
+            pred = self(batch, split='test')
+            loss = self.loss(pred, batch, split='test')
+            self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
-        data_list_true, data_list_prediction, data_list_error = self.rollout(batch, batch_idx)
+            data_list_true, data_list_prediction, data_list_error = self.rollout(batch, batch_idx)
 
-        if self.animate:
-            make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True)
+            if self.animate:
+                make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True)
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
