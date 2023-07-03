@@ -104,7 +104,7 @@ class MeshGraphNet(pl.LightningModule):
         The return of processor is fed into the processor for generating new feature vectors
         """
         x, edge_index, edge_attr = batch.x, batch.edge_index.long(), batch.edge_attr
-        # x += self.v_noise(batch, self.noise_std)
+        x[:,:2] += self.v_noise(batch, self.noise_std)
 
         if split == 'train':
             x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_train, self.mean_vec_edge_train], std=[self.std_vec_x_train, self.std_vec_edge_train])
