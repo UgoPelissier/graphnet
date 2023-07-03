@@ -4,7 +4,8 @@ import os.path as osp
 import json
 import numpy as np
 
-from utils.utils import normalize, unnormalize, load_stats, get_next_version, make_animation
+from utils.stats import normalize, unnormalize, load_stats
+from utils.utils import get_next_version, make_animation
 from data.dataset import NodeType
 from model.processor import ProcessorLayer
 
