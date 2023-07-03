@@ -18,28 +18,26 @@ def save_vtu(
         ground_truth: List[Data],
         prediction: List[Data],
         error: List[Data],
-        path: str
+        path: str,
+        index: int
 ):
-    os.makedirs(osp.join(path, 'pred'), exist_ok=True)
-    with alive_bar(total=len(ground_truth)) as bar:
-        for i in range(len(ground_truth)):
-            point_data = {
-                'u_true': ground_truth[i].x[:,0].cpu().numpy(),
-                'v_true': ground_truth[i].x[:,1].cpu().numpy(),
-                'u_pred': prediction[i].x[:,0].cpu().numpy(),
-                'v_pred': prediction[i].x[:,1].cpu().numpy(),
-                'u_error': error[i].x[:,0].cpu().numpy(),
-                'v_error': error[i].x[:,1].cpu().numpy()
-            }
+    os.makedirs(osp.join(path, 'pred', str(index)), exist_ok=True)
+    for i in range(len(ground_truth)):
+        point_data = {
+            'u_true': ground_truth[i].x[:,0].cpu().numpy(),
+            'v_true': ground_truth[i].x[:,1].cpu().numpy(),
+            'u_pred': prediction[i].x[:,0].cpu().numpy(),
+            'v_pred': prediction[i].x[:,1].cpu().numpy(),
+            'u_error': error[i].x[:,0].cpu().numpy(),
+            'v_error': error[i].x[:,1].cpu().numpy()
+        }
 
-            mesh = meshio.Mesh(
-                points=ground_truth[i].mesh_pos.cpu(),
-                cells=[("triangle", ground_truth[i].cells.cpu())],
-                point_data=point_data)
-            
-            mesh.write(osp.join(path, 'pred', 'velocity_{}.vtu'.format(i)))
-
-            bar()
+        mesh = meshio.Mesh(
+            points=ground_truth[i].mesh_pos.cpu(),
+            cells=[("triangle", ground_truth[i].cells.cpu())],
+            point_data=point_data)
+        
+        mesh.write(osp.join(path, 'pred', str(index), 'velocity_{}.vtu'.format(i)))
         
 
 def make_animation(

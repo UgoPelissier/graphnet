@@ -54,7 +54,7 @@ class MyLightningCLI(LightningCLI):
                 "model.hidden_dim": 32,
                 "model.output_dim": 2,
                 "model.optimizer": "torch.optim.AdamW",
-                "model.test_indices": [0],
+                "model.test_indices": [0,1,2,3,4,5,6,7,8,9],
                 "model.animate": True,
 
                 "trainer.max_epochs": 1000,

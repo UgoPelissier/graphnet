@@ -179,7 +179,7 @@ class MeshGraphNet(pl.LightningModule):
             data_list_true, data_list_prediction, data_list_error = self.rollout(batch, batch_idx)
 
             if self.animate:
-                save_vtu(data_list_true, data_list_prediction, data_list_error, path=osp.join(self.logs, self.version))
+                save_vtu(data_list_true, data_list_prediction, data_list_error, path=osp.join(self.logs, self.version), index=batch_idx)
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
