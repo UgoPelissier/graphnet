@@ -5,14 +5,15 @@ import json
 import numpy as np
 
 from utils.stats import normalize, unnormalize, load_stats
-from utils.utils import get_next_version, make_animation
+from utils.utils import get_next_version
+from utils.vizu import make_animation
 from data.dataset import NodeType
 from model.processor import ProcessorLayer
 
 import torch
 from torch.nn import Linear, Sequential, LayerNorm, ReLU
 from torch.optim import Optimizer
-from torch.optim.lr_scheduler import LRScheduler, ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from lightning.fabric.utilities.types import _TORCH_LRSCHEDULER
 
 from torch_geometric.data import Data
