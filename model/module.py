@@ -6,7 +6,7 @@ import numpy as np
 
 from utils.stats import normalize, unnormalize, load_stats
 from utils.utils import get_next_version
-from utils.vizu import make_animation
+from utils.vizu import save_vtu
 from data.dataset import NodeType
 from model.processor import ProcessorLayer
 
@@ -104,7 +104,7 @@ class MeshGraphNet(pl.LightningModule):
         The return of processor is fed into the processor for generating new feature vectors
         """
         x, edge_index, edge_attr = batch.x, batch.edge_index.long(), batch.edge_attr
-        x += self.v_noise(batch, self.noise_std)
+        # x += self.v_noise(batch, self.noise_std)
 
         if split == 'train':
             x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_train, self.mean_vec_edge_train], std=[self.std_vec_x_train, self.std_vec_edge_train])
@@ -179,7 +179,7 @@ class MeshGraphNet(pl.LightningModule):
             data_list_true, data_list_prediction, data_list_error = self.rollout(batch, batch_idx)
 
             if self.animate:
-                make_animation(ground_truth=data_list_true, prediction=data_list_prediction, error=data_list_error, path=osp.join(self.logs, self.version), name=f'x_velocity_{batch_idx}', skip=1, save_anim=True)
+                save_vtu(data_list_true, data_list_prediction, data_list_error, path=osp.join(self.logs, self.version))
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
