@@ -99,23 +99,6 @@ def get_next_version(logs: str) -> int:
     return max(existing_versions) + 1
 
 
-def progressBar(
-        count_value: Union[int, float],
-        total: Union[int, float],
-        prefix: str=''
-    ) -> None:
-    """Print a progress bar."""
-    bar_length = 100
-    filled_up_Length = int(round(bar_length* count_value / float(total)))
-    percentage = round(100.0 * count_value/float(total),1)
-    bar = '=' * filled_up_Length + ' ' * (bar_length - filled_up_Length)
-    if (percentage == 100.0):
-        sys.stdout.write('%s [%s] %s%s\n' %(prefix, bar, percentage, ' %'))
-    else:
-        sys.stdout.write('%s [%s] %s%s\r' %(prefix, bar, percentage, ' %'))
-    sys.stdout.flush()
-
-
 def make_animation(
         ground_truth: List[Data],
         prediction: List[Data],
@@ -162,7 +145,6 @@ def make_animation(
             triang = mtri.Triangulation(pos[:, 0].cpu(), pos[:, 1].cpu(), faces.cpu())
             if (count <= 1):
                 # absolute values
-                
                 mesh_plot = ax.tripcolor(triang, velocity[:, 0].cpu(), vmin= bb_min, vmax=bb_max,  shading='flat' ) # x-velocity
                 ax.triplot(triang, 'ko-', ms=0.5, lw=0.3)
             else:
