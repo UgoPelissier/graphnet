@@ -9,7 +9,6 @@ import json
 import tensorflow as tf
 import functools
 import enum
-from utils.utils import progressBar
 from alive_progress import alive_bar
 
 
