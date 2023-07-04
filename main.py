@@ -22,16 +22,17 @@ class MyLightningCLI(LightningCLI):
             "class_path": "lightning.pytorch.loggers.TensorBoardLogger",
             "init_args": {
                 "save_dir": "/data/users/upelissier/30-Code/graphnet/",
-                # "save_dir": "/home/eleve05/safran/graphnet/",
-                "name": "logs/"
+                "save_dir": "/home/eleve05/safran/graphnet/",
+                # "name": "logs/"
             },
         }
 
         parser.set_defaults(
             {
+                # "data.data_raw": "/data/users/upelissier/30-Code/freefem/",
+                # "data.data_processed": "/data/users/upelissier/30-Code/graphnet/data/",
                 "data.data_raw": "/data/users/upelissier/30-Code/freefem/",
-                "data.data_processed": "/data/users/upelissier/30-Code/graphnet/data/",
-                # "data.data_dir": "/home/eleve05/safran/graphnet/data/",
+                "data.data_processed": "/home/eleve05/safran/graphnet/data/",
                 "data.dataset_name": "stokes",
                 "data.val_size": 0.1,
                 "data.test_size": 0.15,
@@ -39,12 +40,12 @@ class MyLightningCLI(LightningCLI):
                 "data.batch_size_valid": 4,
                 "data.batch_size_test": 50,
 
-                "model.path": "/home/upelissier/30-Code/graphnet/",
-                "model.dataset": "/data/users/upelissier/30-Code/graphnet/data/",
-                "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
-                # "model.path": "/home/eleve05/safran/graphnet/",
-                # "model.dataset": "/home/eleve05/safran/graphnet/data/",
-                # "model.logs": "/home/eleve05/safran/graphnet/logs/",
+                # "model.path": "/home/upelissier/30-Code/graphnet/",
+                # "model.dataset": "/data/users/upelissier/30-Code/graphnet/data/",
+                # "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
+                "model.path": "/home/eleve05/safran/graphnet/",
+                "model.dataset": "/home/eleve05/safran/graphnet/data/",
+                "model.logs": "/home/eleve05/safran/graphnet/logs/",
                 "model.noise_std": 2e-2,
                 "model.num_layers": 10,
                 "model.input_dim_node": 11,
