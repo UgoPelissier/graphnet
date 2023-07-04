@@ -37,6 +37,8 @@ class MeshGraphNet(pl.LightningModule):
             output_dim: int,
             optimizer: OptimizerCallable,
             test_indices: List[int],
+            time_step_lim: int,
+            batch_size_test: int,
             animate: bool,
             lr_scheduler: Optional[LRSchedulerCallable] = None
         ) -> None:
@@ -87,7 +89,11 @@ class MeshGraphNet(pl.LightningModule):
 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
+        self.test_index = 0
         self.test_indices = test_indices
+        self.time_step_lim = time_step_lim
+        self.batch_size_test = batch_size_test
+        self.data_list_true, self.data_list_prediction, self.data_list_error = [], [], []
         self.animate = animate
         self.version = f'version_{get_next_version(self.logs)}'
 
@@ -171,15 +177,25 @@ class MeshGraphNet(pl.LightningModule):
         """Test step of the model."""
         self.load_stats()
 
-        if batch_idx in self.test_indices:
+        if ((batch_idx%(self.time_step_lim//self.batch_size_test))==0):
+            self.data_list_true, self.data_list_prediction, self.data_list_error = [], [], []
+
+        if (self.test_index in self.test_indices):
             pred = self(batch, split='test')
             loss = self.loss(pred, batch, split='test')
             self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
             data_list_true, data_list_prediction, data_list_error = self.rollout(batch, batch_idx)
+            self.data_list_true += data_list_true
+            self.data_list_prediction += data_list_prediction
+            self.data_list_error += data_list_error
 
-            if self.animate:
-                save_vtu(data_list_true, data_list_prediction, data_list_error, path=osp.join(self.logs, self.version), index=batch_idx)
+            if ((batch_idx%(self.time_step_lim//self.batch_size_test))==((self.time_step_lim//self.batch_size_test)-1)):
+                if (self.test_index in self.test_indices) and self.animate:
+                    save_vtu(self.data_list_true, self.data_list_prediction, self.data_list_error, path=osp.join(self.logs, self.version), index=self.test_index)
+
+        if ((batch_idx%(self.time_step_lim//self.batch_size_test))==((self.time_step_lim//self.batch_size_test)-1)):
+            self.test_index += 1
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""

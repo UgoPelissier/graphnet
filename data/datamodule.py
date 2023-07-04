@@ -13,7 +13,8 @@ class MeshDataModule(pl.LightningDataModule):
                  idx_lim_test: int,
                  time_step_lim: int,
                  batch_size_train: int,
-                 batch_size_valid: int
+                 batch_size_valid: int,
+                 batch_size_test: int
                  ) -> None:
         super().__init__()
         self.data_dir = data_dir
@@ -26,6 +27,7 @@ class MeshDataModule(pl.LightningDataModule):
         self.time_step_lim = time_step_lim
         self.batch_size_train = batch_size_train
         self.batch_size_valid = batch_size_valid
+        self.batch_size_test = batch_size_test
         
         self.train_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.idx_lim_test, self.time_step_lim, split="train")
         self.valid_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.idx_lim_test, self.time_step_lim, split="valid")
@@ -38,4 +40,4 @@ class MeshDataModule(pl.LightningDataModule):
         return DataLoader(self.valid_ds, batch_size=self.batch_size_valid, shuffle=False, num_workers=8)
     
     def test_dataloader(self):
-        return DataLoader(self.test_ds, batch_size=self.time_step_lim, shuffle=False, num_workers=8)
+        return DataLoader(self.test_ds, batch_size=self.batch_size_test, shuffle=False, num_workers=8)
