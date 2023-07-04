@@ -254,6 +254,6 @@ class MeshGraphNet(pl.LightningModule):
         """Return noise to add to the velocity field."""
         v = batch.x[:,:2]
         v_noise = torch.normal(std=noise_std, mean=0.0, size=v.shape).to(self.device)
-        mask = torch.argmax(batch.x[:,2:],dim=1)==torch.tensor(NodeType.NORMAL)
+        mask = torch.argmax(batch.x[:,2:],dim=1)!=torch.tensor(NodeType.NORMAL)
         v_noise[mask]=0
         return v_noise
