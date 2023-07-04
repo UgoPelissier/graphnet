@@ -2,14 +2,14 @@ import os
 import os.path as osp
 import glob
 import torch
-from typing import Optional, Callable
-from torch_geometric.data import Dataset, Data, download_url
 import numpy as np
-import json
-import tensorflow as tf
-import functools
+from typing import Optional, Callable
+from torch_geometric.data import Dataset, Data
+import numpy as np
 import enum
+import meshio
 from alive_progress import alive_bar
+from utils.utils import cell2point
 
 
 class NodeType(enum.IntEnum):
@@ -21,43 +21,28 @@ class NodeType(enum.IntEnum):
     """
     NORMAL = 0
     OBSTACLE = 1
-    AIRFOIL = 2
-    HANDLE = 3
-    INFLOW = 4
-    OUTFLOW = 5
-    WALL_BOUNDARY = 6
-    SIZE = 9
+    INFLOW = 2
+    OUTFLOW = 3
+    WALL_BOUNDARY = 4
+    SIZE = 5
 
 
 class MeshDataset(Dataset):
-    def __init__(self,
-                 data_dir: str,
-                 dataset_name: str,
-                 field: str,
-                 time_steps: int,
-                 idx_lim_train: int,
-                 idx_lim_val: int,
-                 idx_lim_test: int,
-                 time_step_lim: int,
-                 split: str,
-                 transform: Optional[Callable] = None,
-                 pre_transform: Optional[Callable] = None
+    def __init__(
+            self,
+            data_raw: str,
+            data_processed: str,
+            dataset_name: str,
+            split: str,
+            indices: np.ndarray,
+            transform: Optional[Callable] = None,
+            pre_transform: Optional[Callable] = None
     ) -> None:
-        self.split = split
-        self.data_dir = data_dir
+        self.data_raw = data_raw
+        self.data_processed = data_processed
         self.dataset_name = dataset_name
-        self.field = field
-        self.time_steps = time_steps
-
-        if self.split == 'train':
-            self.idx_lim = idx_lim_train
-        elif self.split == 'valid':
-            self.idx_lim = idx_lim_val
-        elif self.split == 'test':
-            self.idx_lim = idx_lim_test
-        else:
-            raise ValueError(f"Invalid split: {self.split}")
-        self.time_step_lim = time_step_lim
+        self.split = split
+        self.idx = indices
 
         self.eps = torch.tensor(1e-8)
 
@@ -78,21 +63,18 @@ class MeshDataset(Dataset):
         self.num_accs_edge = 0
         self.num_accs_y = 0
 
-        super().__init__(self.data_dir, transform, pre_transform)
+        super().__init__(self.data_processed, transform, pre_transform)
 
     @property
     def raw_file_names(self) -> list: 
-        return ['meta.json', 'train.tfrecord', 'valid.tfrecord', 'test.tfrecord']
+        return ["stokes_{:03d}.vtu".format(i) for i in self.idx]
 
     @property
     def processed_file_names(self) -> list:
         return glob.glob(os.path.join(self.processed_dir, self.split, 'data_*.pt'))
     
     def download(self) -> None:
-        print(f'Download dataset {self.dataset_name} to {self.raw_dir}')
-        for file in ['meta.json', 'train.tfrecord', 'valid.tfrecord', 'test.tfrecord']:
-            url = f"https://storage.googleapis.com/dm-meshgraphnets/{self.dataset_name}/{file}"
-            download_url(url=url, folder=self.raw_dir)
+        pass
 
     def triangles_to_edges(self, faces: torch.Tensor) -> torch.Tensor:
         """Computes mesh edges from triangles."""
@@ -110,17 +92,6 @@ class MeshDataset(Dataset):
         senders, receivers = unique_edges[:, 0], unique_edges[:, 1]
         # create two-way connectivity
         return torch.stack([torch.cat((senders, receivers), dim=0), torch.cat((receivers, senders), dim=0)], dim=0)
-
-    def _parse(self, proto, meta: dict) -> dict:
-        """Parses a trajectory from tf.Example."""
-        feature_lists = {k: tf.io.VarLenFeature(tf.string) for k in meta['field_names']}
-        features = tf.io.parse_single_example(proto, feature_lists)
-        out = {}
-        for key, field in meta['features'].items():
-            data = tf.io.decode_raw(features[key].values, getattr(tf, field['dtype']))
-            data = tf.reshape(data, field['shape'])
-            out[key] = data
-        return out
 
     def update_stats(self, x: torch.Tensor, edge_attr: torch.Tensor, y: torch.Tensor) -> None:
         """Update the mean and std of the node features, edge features, and output parameters."""
@@ -147,7 +118,7 @@ class MeshDataset(Dataset):
         self.mean_vec_y = self.mean_vec_y / self.num_accs_y
         self.std_vec_y = torch.maximum(torch.sqrt(self.std_vec_y / self.num_accs_y - self.mean_vec_y**2), self.eps)
 
-        save_dir = osp.join(self.processed_dir, 'stats', self.split, )
+        save_dir = osp.join(self.processed_dir, 'stats', self.split)
         os.makedirs(save_dir, exist_ok=True)
 
         torch.save(self.mean_vec_x, osp.join(save_dir, 'mean_vec_x.pt'))
@@ -163,55 +134,18 @@ class MeshDataset(Dataset):
         """Process the dataset."""
         os.makedirs(os.path.join(self.processed_dir, self.split), exist_ok=True)
 
-        # load meta data
-        with open(osp.join(self.raw_dir, 'meta.json'), 'r') as fp:
-            meta = json.loads(fp.read())
-        self.dt = meta['dt']
-        # convert data to dict
-        ds = tf.data.TFRecordDataset(osp.join(self.raw_dir, f'%s.tfrecord' % self.split))
-        ds = ds.map(functools.partial(self._parse, meta=meta), num_parallel_calls=8)
-
         data_list = []
         print(f'{self.split} dataset')
-        with alive_bar(total=self.idx_lim*self.time_step_lim) as bar:
-            for idx, data in enumerate(ds):
-                if (idx==self.idx_lim):
-                    break
-                # convert tensors from tf to pytorch
-                d = {}
-                for key, value in data.items():
-                        d[key] = torch.from_numpy(value.numpy()).squeeze(dim=0)
-                # extract data from each time step
-                for t in range(self.time_steps-1):
-                    if (t==self.time_step_lim):
-                        break
-                    # get node features
-                    bar()
-                    v = d['velocity'][t, :, :]
-                    node_type = torch.tensor(np.array(tf.one_hot(tf.convert_to_tensor(data['node_type'][0,:,0]), NodeType.SIZE)))
-                    x = torch.cat((v, node_type),dim=-1).type(torch.float)
+        with alive_bar(total=len(self.processed_file_names)) as bar:
+            for idx, data in enumerate(self.raw_file_names):
+                mesh = meshio.read(data)
 
-                    # get edge indices in COO format
-                    edge_index = self.triangles_to_edges(d['cells']).long()
-
-                    # get edge attributes
-                    u_i = d['mesh_pos'][edge_index[0]]
-                    u_j = d['mesh_pos'][edge_index[1]]
-                    u_ij = u_i - u_j
-                    u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
-                    edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
-
-                    # node outputs, for training (velocity)
-                    v_t = d['velocity'][t, :, :]
-                    v_tp1 = d['velocity'][t+1, :, :]
-                    y = ((v_tp1-v_t)/meta['dt']).type(torch.float)
-
-                    self.update_stats(x, edge_attr, y)
-
-                    torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=d['cells'], mesh_pos=d['mesh_pos'], n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=d['cells'].shape[0]),
-                                osp.join(self.processed_dir, self.split, f'data_{idx*self.time_step_lim+t}.pt'))
-                    
-        self.save_stats()
+                # get node features
+                v = torch.Tensor(np.stack((cell2point(data, 'u'), cell2point(data, 'v'))).transpose())
+                node_type = torch.zeros(mesh.points.shape[0])
+                for i in range(mesh.cells[1].data.shape[0]):
+                    for j in range(mesh.cells[1].data.shape[1]):
+                        node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
 
     def len(self) -> int:
         return len(self.processed_file_names)

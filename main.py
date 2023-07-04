@@ -29,15 +29,12 @@ class MyLightningCLI(LightningCLI):
 
         parser.set_defaults(
             {
-                "data.data_dir": "/data/users/upelissier/30-Code/graphnet/data/",
+                "data.data_raw": "/data/users/upelissier/30-Code/freefem/",
+                "data.data_processed": "/data/users/upelissier/30-Code/graphnet/data/",
                 # "data.data_dir": "/home/eleve05/safran/graphnet/data/",
-                "data.dataset_name": "cylinder_flow",
-                "data.field": "velocity",
-                "data.time_steps": 600,
-                "data.idx_lim_train": 200,
-                "data.idx_lim_val": 20,
-                "data.idx_lim_test": 10,
-                "data.time_step_lim": 400,
+                "data.dataset_name": "stokes",
+                "data.val_size": 0.1,
+                "data.test_size": 0.15,
                 "data.batch_size_train": 64,
                 "data.batch_size_valid": 4,
                 "data.batch_size_test": 50,

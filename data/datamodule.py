@@ -1,37 +1,33 @@
 import lightning.pytorch as pl
+import os
+import os.path as osp
+from utils.utils import train_val_test_split
 from data.dataset import MeshDataset
 from torch_geometric.loader import DataLoader
 
 class MeshDataModule(pl.LightningDataModule):
-    def __init__(self,
-                 data_dir: str,
-                 dataset_name: str,
-                 field: str,
-                 time_steps: int,
-                 idx_lim_train: int,
-                 idx_lim_val: int,
-                 idx_lim_test: int,
-                 time_step_lim: int,
-                 batch_size_train: int,
-                 batch_size_valid: int,
-                 batch_size_test: int
-                 ) -> None:
+    def __init__(
+            self,
+            data_raw: str,
+            data_processed: str,
+            dataset_name: str,
+            val_size: float,
+            test_size: float,
+            batch_size_train: int,
+            batch_size_valid: int,
+            batch_size_test: int
+    ) -> None:
         super().__init__()
-        self.data_dir = data_dir
-        self.dataset_name = dataset_name
-        self.field = field
-        self.time_steps = time_steps
-        self.idx_lim_train = idx_lim_train
-        self.idx_lim_val = idx_lim_val
-        self.idx_lim_test = idx_lim_test
-        self.time_step_lim = time_step_lim
         self.batch_size_train = batch_size_train
         self.batch_size_valid = batch_size_valid
         self.batch_size_test = batch_size_test
+
+        # Define the indices
+        train_index, val_index, test_index = train_val_test_split(data_processed=data_processed, name=dataset_name, n=len(os.listdir(osp.join(data_raw, dataset_name))), val_size=val_size, test_size=test_size)
         
-        self.train_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.idx_lim_test, self.time_step_lim, split="train")
-        self.valid_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.idx_lim_test, self.time_step_lim, split="valid")
-        self.test_ds = MeshDataset(self.data_dir, self.dataset_name, self.field, self.time_steps, self.idx_lim_train, self.idx_lim_val, self.idx_lim_test, self.time_step_lim, split="test")
+        self.train_ds = MeshDataset(data_raw, data_processed, dataset_name, split="train", indices=train_index)
+        self.valid_ds = MeshDataset(data_raw, data_processed, dataset_name, split="valid", indices=val_index)
+        self.test_ds = MeshDataset(data_raw, data_processed, dataset_name, split="test", indices=test_index)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, num_workers=8)
