@@ -49,8 +49,8 @@ class MeshDataset(Dataset):
         self.eps = torch.tensor(1e-8)
 
         # mean and std of the node features are calculated
-        self.mean_vec_x = torch.zeros(11)
-        self.std_vec_x = torch.zeros(11)
+        self.mean_vec_x = torch.zeros(7)
+        self.std_vec_x = torch.zeros(7)
 
         # mean and std of the edge features are calculated
         self.mean_vec_edge = torch.zeros(3)
@@ -73,7 +73,7 @@ class MeshDataset(Dataset):
 
     @property
     def processed_file_names(self) -> list:
-        return glob.glob(os.path.join(self.processed_dir, self.split, 'data_*.pt'))
+        return glob.glob(os.path.join(self.processed_dir, self.split, 'stokes_*.pt'))
     
     def download(self) -> None:
         pass
@@ -151,7 +151,7 @@ class MeshDataset(Dataset):
 
                 # get initial velocity
                 v_0 = torch.zeros(mesh.points.shape[0], 2)
-                mask = (node_type.long())!=torch.tensor(NodeType.INFLOW)
+                mask = (node_type.long())==torch.tensor(NodeType.INFLOW)
                 v_0[mask] = torch.Tensor([self.u_0, self.v_0])
 
                 node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
@@ -163,8 +163,8 @@ class MeshDataset(Dataset):
                 edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
 
                 # get edge attributes
-                u_i = mesh.points[edge_index[0]]
-                u_j = mesh.points[edge_index[1]]
+                u_i = mesh.points[edge_index[0]][:,:2]
+                u_j = mesh.points[edge_index[1]][:,:2]
                 u_ij = torch.Tensor(u_i - u_j)
                 u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
                 edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
@@ -172,6 +172,15 @@ class MeshDataset(Dataset):
                 # node outputs, for training (velocity)
                 v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'))).transpose())
                 y = v.type(torch.float)
+
+                self.update_stats(x, edge_attr, y)
+
+                torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=mesh.cells, mesh_pos=mesh.points, n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0]),
+                            osp.join(self.processed_dir, self.split, f'stokes_{idx}.pt'))
+                    
+        self.save_stats()
+
+        exit(0)
 
     def len(self) -> int:
         return len(self.processed_file_names)
