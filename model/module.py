@@ -22,7 +22,8 @@ class MeshGraphNet(pl.LightningModule):
     def __init__(
             self,
             path: str,
-            dataset: str,
+            data_dir: str,
+            dataset_name: str,
             logs: str,
             noise_std: float,
             num_layers: int,
@@ -39,7 +40,8 @@ class MeshGraphNet(pl.LightningModule):
         super().__init__()
 
         self.path = path
-        self.dataset = dataset
+        self.data_dir = data_dir
+        self.dataset_name = dataset_name
         self.logs = logs
         self.noise_std = noise_std
         self.num_layers = num_layers
@@ -176,7 +178,7 @@ class MeshGraphNet(pl.LightningModule):
         
     def load_stats(self):
         """Load statistics from the dataset."""
-        train_stats, val_stats, test_stats = load_stats(self.dataset, self.device)
+        train_stats, val_stats, test_stats = load_stats(self.data_dir, self.dataset_name, self.device)
         self.mean_vec_x_train, self.std_vec_x_train, self.mean_vec_edge_train, self.std_vec_edge_train, self.mean_vec_y_train, self.std_vec_y_train = train_stats
         self.mean_vec_x_val, self.std_vec_x_val, self.mean_vec_edge_val, self.std_vec_edge_val, self.mean_vec_y_val, self.std_vec_y_val = val_stats
         self.mean_vec_x_test, self.std_vec_x_test, self.mean_vec_edge_test, self.std_vec_edge_test, self.mean_vec_y_test, self.std_vec_y_test = test_stats
