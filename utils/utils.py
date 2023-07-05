@@ -7,19 +7,19 @@ from typing import Tuple
 import vtk
 
 def train_val_test_split(
-        data_processed: str,
+        data_dir: str,
         name: str,
         n: int,
         val_size: float,
         test_size: float
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Split the dataset into train, validation and test sets."""
-    os.makedirs(osp.join(data_processed, name, 'indices'), exist_ok=True)
+    os.makedirs(osp.join(data_dir, name, 'indices'), exist_ok=True)
     indices = np.random.permutation(n)
     train_index, val_index, test_index = indices[:int(n*(1-(val_size+test_size)))], indices[int(n*(1-(val_size+test_size))):int(n*(1-test_size))],  indices[int(n*(1-test_size)):]
-    np.savetxt(osp.join(data_processed, name, 'indices', 'train_index.txt'), train_index, fmt='%i')
-    np.savetxt(osp.join(data_processed, name, 'indices', 'val_index.txt'), val_index, fmt='%i')
-    np.savetxt(osp.join(data_processed, name, 'indices', 'test_index.txt'), test_index, fmt='%i')
+    np.savetxt(osp.join(data_dir, name, 'indices', 'train_index.txt'), train_index, fmt='%i')
+    np.savetxt(osp.join(data_dir, name, 'indices', 'val_index.txt'), val_index, fmt='%i')
+    np.savetxt(osp.join(data_dir, name, 'indices', 'test_index.txt'), test_index, fmt='%i')
     return train_index, val_index, test_index
 
 
