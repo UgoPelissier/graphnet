@@ -175,10 +175,13 @@ class MeshDataset(Dataset):
 
                 self.update_stats(x, edge_attr, y)
 
-                torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=mesh.cells, mesh_pos=mesh.points, n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0]),
+                torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=mesh.cells, mesh_pos=mesh.points, n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0], name=data[:-4]),
                             osp.join(self.processed_dir, self.split, f'{data[:-4]}.pt'))
                     
         self.save_stats()
+
+        if (self.split=="test"):
+            exit(0)
 
     def len(self) -> int:
         return len(self.processed_file_names)
