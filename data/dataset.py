@@ -184,5 +184,5 @@ class MeshDataset(Dataset):
         return len(self.processed_file_names)
     
     def get(self, idx: int) -> Data:
-        data = torch.load(os.path.join(self.processed_dir, self.split, f'data_{self.idx[idx]}.pt'))
+        data = torch.load(os.path.join(self.processed_dir, self.split, f'stokes{self.idx[idx]}.pt'))
         return data
