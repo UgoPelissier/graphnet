@@ -20,10 +20,10 @@ class NodeType(enum.IntEnum):
     https://github.com/deepmind/deepmind-research/tree/master/meshgraphnets
     """
     NORMAL = 0
-    OBSTACLE = 1
-    INFLOW = 2
-    OUTFLOW = 3
-    WALL_BOUNDARY = 4
+    INFLOW = 1
+    OUTFLOW = 2
+    WALL_BOUNDARY = 3
+    OBSTACLE = 4
     SIZE = 5
 
 
