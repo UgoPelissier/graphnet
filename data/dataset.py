@@ -32,6 +32,7 @@ class MeshDataset(Dataset):
             self,
             data_dir: str,
             dataset_name: str,
+            u_0: float,
             split: str,
             indices: np.ndarray,
             transform: Optional[Callable] = None,
@@ -39,6 +40,7 @@ class MeshDataset(Dataset):
     ) -> None:
         self.data_dir = data_dir
         self.dataset_name = dataset_name
+        self.u_0 = u_0
         self.split = split
         self.idx = indices
 
