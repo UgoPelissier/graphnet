@@ -33,6 +33,7 @@ class MeshDataset(Dataset):
             data_dir: str,
             dataset_name: str,
             u_0: float,
+            v_0: float,
             split: str,
             indices: np.ndarray,
             transform: Optional[Callable] = None,
@@ -41,6 +42,7 @@ class MeshDataset(Dataset):
         self.data_dir = data_dir
         self.dataset_name = dataset_name
         self.u_0 = u_0
+        self.v_0 = v_0
         self.split = split
         self.idx = indices
 
@@ -138,6 +140,7 @@ class MeshDataset(Dataset):
         print(f'{self.split} dataset')
         with alive_bar(total=len(self.processed_file_names)) as bar:
             for idx, data in enumerate(self.raw_file_names):
+                # read vtu file
                 mesh = meshio.read(osp.join(self.raw_dir, data))
 
                 # velocity field
@@ -148,6 +151,13 @@ class MeshDataset(Dataset):
                 for i in range(mesh.cells[1].data.shape[0]):
                     for j in range(mesh.cells[1].data.shape[1]):
                         node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
+
+                v_0 = torch.zeros(mesh.points.shape[0], 2)
+
+                node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
+
+                # get features
+                x = torch.cat((v, node_type_one_hot),dim=-1).type(torch.float)
 
                 # get edge indices in COO format
                 edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
