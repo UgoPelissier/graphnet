@@ -143,21 +143,21 @@ class MeshDataset(Dataset):
                 # read vtu file
                 mesh = meshio.read(osp.join(self.raw_dir, data))
 
-                # velocity field
-                v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'))).transpose())
-
                 # node type
                 node_type = torch.zeros(mesh.points.shape[0])
                 for i in range(mesh.cells[1].data.shape[0]):
                     for j in range(mesh.cells[1].data.shape[1]):
                         node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
 
+                # get initial velocity
                 v_0 = torch.zeros(mesh.points.shape[0], 2)
+                mask = (node_type.long())!=torch.tensor(NodeType.INFLOW)
+                v_0[mask] = torch.Tensor([self.u_0, self.v_0])
 
                 node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
 
                 # get features
-                x = torch.cat((v, node_type_one_hot),dim=-1).type(torch.float)
+                x = torch.cat((v_0, node_type_one_hot),dim=-1).type(torch.float)
 
                 # get edge indices in COO format
                 edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
@@ -170,6 +170,7 @@ class MeshDataset(Dataset):
                 edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
 
                 # node outputs, for training (velocity)
+                v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'))).transpose())
                 y = v.type(torch.float)
 
     def len(self) -> int:
