@@ -1,4 +1,8 @@
 from typing import Optional, List, Tuple, Union
+import os
+import os.path as osp
+import shutil
+import meshio
 
 from utils.stats import normalize, load_stats
 from utils.utils import get_next_version
@@ -164,7 +168,29 @@ class MeshGraphNet(pl.LightningModule):
 
     def test_step(self, batch: Data, batch_idx: int) -> None:
         """Test step of the model."""
-        pass
+        self.load_stats()
+        os.makedirs(os.path.join(self.logs, self.version, 'output'), exist_ok=True)
+        os.makedirs(os.path.join(self.logs, self.version, 'output', batch.name[0]), exist_ok=True)
+        shutil.copyfile(
+            osp.join(self.data_dir, self.dataset_name, 'raw', f'{batch.name[0]}.vtu'),
+            osp.join(self.logs, self.version, 'output', batch.name[0], f'{batch.name[0]}.vtu')
+        )
+
+        pred = self(batch, split='train')
+        loss = self.loss(pred, batch, split='train')
+        self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+
+        mesh = meshio.Mesh(
+            points=batch.mesh_pos.cpu().numpy(),
+            cells={"triangle": batch.cells.cpu().numpy()},
+            point_data={'u': batch.y[:,0].cpu().numpy(),
+                        'v': batch.y[:,1].cpu().numpy(),
+                        'u_pred': pred[:,0].detach().cpu().numpy(),
+                        'v_pred': pred[:,1].detach().cpu().numpy(),
+                        'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
+                        'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy(),}
+        )
+        mesh.write(osp.join(self.logs, self.version, 'output', batch.name[0], f'{batch.name[0]}_pred.vtu'), binary=True)
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
