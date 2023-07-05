@@ -31,8 +31,7 @@ class MyLightningCLI(LightningCLI):
             {
                 # "data.data_raw": "/data/users/upelissier/30-Code/freefem/",
                 # "data.data_processed": "/data/users/upelissier/30-Code/graphnet/data/",
-                "data.data_raw": "/home/eleve05/safran/graphnet/data/",
-                "data.data_processed": "/home/eleve05/safran/graphnet/data/",
+                "data.data_dir": "/home/eleve05/safran/graphnet/data/",
                 "data.dataset_name": "stokes",
                 "data.val_size": 0.1,
                 "data.test_size": 0.15,

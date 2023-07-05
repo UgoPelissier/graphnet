@@ -8,8 +8,7 @@ from torch_geometric.loader import DataLoader
 class MeshDataModule(pl.LightningDataModule):
     def __init__(
             self,
-            data_raw: str,
-            data_processed: str,
+            data_dir: str,
             dataset_name: str,
             val_size: float,
             test_size: float,
@@ -23,11 +22,11 @@ class MeshDataModule(pl.LightningDataModule):
         self.batch_size_test = batch_size_test
 
         # Define the indices
-        train_index, val_index, test_index = train_val_test_split(data_processed=data_processed, name=dataset_name, n=len(os.listdir(osp.join(data_raw, dataset_name))), val_size=val_size, test_size=test_size)
+        train_index, val_index, test_index = train_val_test_split(data_dir=data_dir, name=dataset_name, n=len(os.listdir(osp.join(data_dir, dataset_name, 'raw'))), val_size=val_size, test_size=test_size)
         
-        self.train_ds = MeshDataset(data_raw, data_processed, dataset_name, split="train", indices=train_index)
-        self.valid_ds = MeshDataset(data_raw, data_processed, dataset_name, split="valid", indices=val_index)
-        self.test_ds = MeshDataset(data_raw, data_processed, dataset_name, split="test", indices=test_index)
+        self.train_ds = MeshDataset(data_dir, dataset_name, split="train", indices=train_index)
+        self.valid_ds = MeshDataset(data_dir, dataset_name, split="valid", indices=val_index)
+        self.test_ds = MeshDataset(data_dir, dataset_name, split="test", indices=test_index)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, num_workers=8)

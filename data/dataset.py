@@ -30,16 +30,14 @@ class NodeType(enum.IntEnum):
 class MeshDataset(Dataset):
     def __init__(
             self,
-            data_raw: str,
-            data_processed: str,
+            data_dir: str,
             dataset_name: str,
             split: str,
             indices: np.ndarray,
             transform: Optional[Callable] = None,
             pre_transform: Optional[Callable] = None
     ) -> None:
-        self.data_raw = data_raw
-        self.data_processed = data_processed
+        self.data_dir = data_dir
         self.dataset_name = dataset_name
         self.split = split
         self.idx = indices
@@ -63,7 +61,7 @@ class MeshDataset(Dataset):
         self.num_accs_edge = 0
         self.num_accs_y = 0
 
-        super().__init__(self.data_processed, transform, pre_transform)
+        super().__init__(osp.join(self.data_dir, self.dataset_name), transform, pre_transform)
 
     @property
     def raw_file_names(self) -> list: 
@@ -138,14 +136,29 @@ class MeshDataset(Dataset):
         print(f'{self.split} dataset')
         with alive_bar(total=len(self.processed_file_names)) as bar:
             for idx, data in enumerate(self.raw_file_names):
-                mesh = meshio.read(data)
+                mesh = meshio.read(osp.join(self.raw_dir, data))
 
-                # get node features
-                v = torch.Tensor(np.stack((cell2point(data, 'u'), cell2point(data, 'v'))).transpose())
+                # velocity field
+                v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'))).transpose())
+
+                # node type
                 node_type = torch.zeros(mesh.points.shape[0])
                 for i in range(mesh.cells[1].data.shape[0]):
                     for j in range(mesh.cells[1].data.shape[1]):
                         node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
+
+                # get edge indices in COO format
+                edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
+
+                # get edge attributes
+                u_i = mesh.points[edge_index[0]]
+                u_j = mesh.points[edge_index[1]]
+                u_ij = torch.Tensor(u_i - u_j)
+                u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
+                edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
+
+                # node outputs, for training (velocity)
+                y = v.type(torch.float)
 
     def len(self) -> int:
         return len(self.processed_file_names)

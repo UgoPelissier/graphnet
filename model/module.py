@@ -97,9 +97,7 @@ class MeshGraphNet(pl.LightningModule):
         self.animate = animate
         self.version = f'version_{get_next_version(self.logs)}'
 
-        with open(osp.join(self.dataset, 'raw', 'meta.json'), 'r') as fp:
-            meta = json.loads(fp.read())
-        self.dt = meta['dt']
+        self.dt = 0.1
         
     def build_processor_model(self):
         return ProcessorLayer
