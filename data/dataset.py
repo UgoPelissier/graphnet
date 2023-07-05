@@ -139,7 +139,7 @@ class MeshDataset(Dataset):
         data_list = []
         print(f'{self.split} dataset')
         with alive_bar(total=len(self.processed_file_names)) as bar:
-            for idx, data in enumerate(self.raw_file_names):
+            for data in self.raw_file_names:
                 # read vtu file
                 mesh = meshio.read(osp.join(self.raw_dir, data))
 
@@ -176,15 +176,16 @@ class MeshDataset(Dataset):
                 self.update_stats(x, edge_attr, y)
 
                 torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=mesh.cells, mesh_pos=mesh.points, n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0]),
-                            osp.join(self.processed_dir, self.split, f'stokes_{idx}.pt'))
+                            osp.join(self.processed_dir, self.split, f'{data[:-4]}.pt'))
                     
         self.save_stats()
 
-        exit(0)
+        if (self.split=="test"):
+            exit(0)
 
     def len(self) -> int:
         return len(self.processed_file_names)
     
     def get(self, idx: int) -> Data:
-        data = torch.load(os.path.join(self.processed_dir, self.split, f'data_{idx}.pt'))
+        data = torch.load(os.path.join(self.processed_dir, self.split, f'data_{self.idx[idx]}.pt'))
         return data
