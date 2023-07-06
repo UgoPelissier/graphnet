@@ -170,7 +170,6 @@ class MeshGraphNet(pl.LightningModule):
         """Test step of the model."""
         self.load_stats()
         os.makedirs(os.path.join(self.logs, self.version, 'output'), exist_ok=True)
-        os.makedirs(os.path.join(self.logs, self.version, 'output', batch.name[0]), exist_ok=True)
 
         pred = self(batch, split='train')
         loss = self.loss(pred, batch, split='train')
@@ -186,7 +185,7 @@ class MeshGraphNet(pl.LightningModule):
                         'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
                         'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy(),}
         )
-        mesh.write(osp.join(self.logs, self.version, 'output', batch.name[0], f'{batch.name[0]}_pred.vtu'), binary=True)
+        mesh.write(osp.join(self.logs, self.version, 'output', f'{batch.name[0]}_pred.vtu'), binary=True)
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
