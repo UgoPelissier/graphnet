@@ -54,19 +54,19 @@ class MeshGraphNet(pl.LightningModule):
         self.node_encoder = Sequential(Linear(input_dim_node, hidden_dim),
                                        ReLU(),
                                        Linear(hidden_dim, hidden_dim),
-                                    #    ReLU(),
-                                    #    Linear(hidden_dim, hidden_dim),
-                                    #    ReLU(),
-                                    #    Linear(hidden_dim, hidden_dim),
+                                       ReLU(),
+                                       Linear(hidden_dim, hidden_dim),
+                                       ReLU(),
+                                       Linear(hidden_dim, hidden_dim),
                                        LayerNorm(hidden_dim))
 
         self.edge_encoder = Sequential(Linear(input_dim_edge, hidden_dim),
                                        ReLU(),
                                        Linear(hidden_dim, hidden_dim),
-                                    #    ReLU(),
-                                    #    Linear(hidden_dim, hidden_dim),
-                                    #    ReLU(),
-                                    #    Linear(hidden_dim, hidden_dim),
+                                       ReLU(),
+                                       Linear(hidden_dim, hidden_dim),
+                                       ReLU(),
+                                       Linear(hidden_dim, hidden_dim),
                                        LayerNorm(hidden_dim))
 
 
@@ -81,10 +81,10 @@ class MeshGraphNet(pl.LightningModule):
         # decoder: only for node embeddings
         self.decoder = Sequential(Linear(hidden_dim, hidden_dim),
                                   ReLU(),
-                                #   Linear(hidden_dim, hidden_dim),
-                                #   ReLU(),
-                                #   Linear(hidden_dim, hidden_dim),
-                                #   ReLU(),
+                                  Linear(hidden_dim, hidden_dim),
+                                  ReLU(),
+                                  Linear(hidden_dim, hidden_dim),
+                                  ReLU(),
                                   Linear(hidden_dim, output_dim))
 
         self.optimizer = optimizer
