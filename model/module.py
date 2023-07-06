@@ -171,10 +171,6 @@ class MeshGraphNet(pl.LightningModule):
         self.load_stats()
         os.makedirs(os.path.join(self.logs, self.version, 'output'), exist_ok=True)
         os.makedirs(os.path.join(self.logs, self.version, 'output', batch.name[0]), exist_ok=True)
-        shutil.copyfile(
-            osp.join(self.data_dir, self.dataset_name, 'raw', f'{batch.name[0]}.vtu'),
-            osp.join(self.logs, self.version, 'output', batch.name[0], f'{batch.name[0]}.vtu')
-        )
 
         pred = self(batch, split='train')
         loss = self.loss(pred, batch, split='train')
