@@ -178,14 +178,16 @@ class MeshGraphNet(pl.LightningModule):
         mesh = meshio.Mesh(
             points=batch.mesh_pos.cpu().numpy(),
             cells={"triangle": batch.cells.cpu().numpy()},
-            point_data={'u': batch.y[:,0].cpu().numpy(),
+            point_data={'u_0': batch.v_0[:,0].cpu().numpy(),
+                        'v_0': batch.v_0[:,1].cpu().numpy(),
+                        'u': batch.y[:,0].cpu().numpy(),
                         'v': batch.y[:,1].cpu().numpy(),
                         'u_pred': pred[:,0].detach().cpu().numpy(),
                         'v_pred': pred[:,1].detach().cpu().numpy(),
                         'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
                         'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy(),}
         )
-        mesh.write(osp.join(self.logs, self.version, 'output', f'{batch.name[0]}_pred.vtu'), binary=True)
+        mesh.write(osp.join(self.logs, self.version, 'output', f'{batch.name[0]}_pred.vtu'), binary=False)
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
