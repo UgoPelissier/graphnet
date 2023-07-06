@@ -175,8 +175,10 @@ class MeshDataset(Dataset):
 
                 self.update_stats(x, edge_attr, y)
 
-                torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=torch.Tensor(mesh.cells[0].data), mesh_pos=torch.Tensor(mesh.points), n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0], name=data[:-4]),
+                torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=torch.Tensor(mesh.cells[0].data), mesh_pos=torch.Tensor(mesh.points), n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0], v_0=v_0, name=data[:-4]),
                             osp.join(self.processed_dir, self.split, f'{data[:-4]}.pt'))
+                
+                bar()
                     
         self.save_stats()
 
