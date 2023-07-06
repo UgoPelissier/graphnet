@@ -129,8 +129,7 @@ class MeshGraphNet(pl.LightningModule):
     def loss(self, pred: torch.Tensor, inputs: Data, split: str) -> torch.Tensor:
         """Calculate the loss for the given prediction and inputs."""
         # get the loss mask for the nodes of the types we calculate loss for
-        loss_mask=torch.logical_or((torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.NORMAL)),
-                                   (torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.OUTFLOW)))
+        loss_mask = (torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.NORMAL)) + (torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.OUTFLOW)) + (torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.OBSTACLE))    
 
         # normalize labels with dataset statistics
         if split == 'train':
