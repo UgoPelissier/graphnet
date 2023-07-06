@@ -182,9 +182,6 @@ class MeshDataset(Dataset):
                     
         self.save_stats()
 
-        if (self.split=="test"):
-            exit(0)
-
     def len(self) -> int:
         return len(self.processed_file_names)
     
