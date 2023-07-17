@@ -32,7 +32,7 @@ class MyLightningCLI(LightningCLI):
                 # "data.data_raw": "/data/users/upelissier/30-Code/freefem/",
                 # "data.data_processed": "/data/users/upelissier/30-Code/graphnet/data/",
                 "data.data_dir": "/home/eleve05/safran/graphnet/data/",
-                "data.dataset_name": "stokes",
+                "data.dataset_name": "stokes/uniform",
                 "data.val_size": 0.15,
                 "data.test_size": 0.1,
                 "data.u_0": 1.0,
@@ -61,7 +61,7 @@ class MyLightningCLI(LightningCLI):
 
                 "trainer.max_epochs": 1000,
                 "trainer.accelerator": "gpu",
-                "trainer.devices": 2,
+                "trainer.devices": 1,
                 "trainer.check_val_every_n_epoch": 1,
                 "trainer.log_every_n_steps": 1,
                 "trainer.logger": logger,
