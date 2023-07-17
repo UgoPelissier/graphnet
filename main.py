@@ -46,7 +46,7 @@ class MyLightningCLI(LightningCLI):
                 # "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
                 "model.path": "/home/eleve05/safran/graphnet/",
                 "model.data_dir": "/home/eleve05/safran/graphnet/data/",
-                "model.dataset_name": "stokes",
+                "model.dataset_name": "stokes/uniform",
                 "model.logs": "/home/eleve05/safran/graphnet/logs/",
                 "model.noise_std": 2e-2,
                 "model.num_layers": 15,
