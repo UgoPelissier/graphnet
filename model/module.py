@@ -1,7 +1,6 @@
 from typing import Optional, List, Tuple, Union
 import os
 import os.path as osp
-import shutil
 import meshio
 
 from utils.stats import normalize, load_stats
@@ -103,7 +102,6 @@ class MeshGraphNet(pl.LightningModule):
         The return of processor is fed into the processor for generating new feature vectors
         """
         x, edge_index, edge_attr = batch.x, batch.edge_index.long(), batch.edge_attr
-        # x[:,:2] += self.v_noise(batch, self.noise_std)
 
         if split == 'train':
             x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_train, self.mean_vec_edge_train], std=[self.std_vec_x_train, self.std_vec_edge_train])
@@ -169,6 +167,7 @@ class MeshGraphNet(pl.LightningModule):
         """Test step of the model."""
         self.load_stats()
         os.makedirs(os.path.join(self.logs, self.version, 'output'), exist_ok=True)
+        os.makedirs(os.path.join(self.logs, self.version, 'output', batch.name[0]), exist_ok=True)
 
         pred = self(batch, split='train')
         loss = self.loss(pred, batch, split='train')
@@ -186,7 +185,12 @@ class MeshGraphNet(pl.LightningModule):
                         'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
                         'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy(),}
         )
-        mesh.write(osp.join(self.logs, self.version, 'output', f'{batch.name[0]}_pred.vtu'), binary=False)
+        mesh.write(osp.join(self.logs, self.version, 'output', batch.name[0], f'{batch.name[0]}_pred.vtu'), binary=False)
+
+        self.write_field(batch, batch.y[:,0], 'u')
+        self.write_field(batch, batch.y[:,1], 'v')
+        self.write_field(batch, pred[:,0], 'u_pred')
+        self.write_field(batch, pred[:,1], 'v_pred')
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
@@ -212,3 +216,21 @@ class MeshGraphNet(pl.LightningModule):
         mask = torch.argmax(batch.x[:,2:],dim=1)!=torch.tensor(NodeType.NORMAL)
         v_noise[mask]=0
         return v_noise
+    
+    def write_field(self, batch: Data, field: torch.Tensor, name: str) -> None:
+        # field = field.detach().cpu().numpy()
+        with open(osp.join(self.logs, self.version, 'output', batch.name[0], f'{name}.txt'), 'w') as f:
+            f.write(f'{len(field)}\t\n')
+            for i in range(0, len(field), 5):
+                if (i+5>len(field)):
+                    r = len(field) - i
+                    if r == 1:
+                        f.write(f'\t{field[i]}\n')
+                    elif r == 2:
+                        f.write(f'\t{field[i]}\t{field[i+1]}\n')
+                    elif r == 3:
+                        f.write(f'\t{field[i]}\t{field[i+1]}\t{field[i+2]}\n')
+                    elif r == 4:
+                        f.write(f'\t{field[i]}\t{field[i+1]}\t{field[i+2]}\t{field[i+3]}\n')
+                else:
+                    f.write(f'\t{field[i]}\t{field[i+1]}\t{field[i+2]}\t{field[i+3]}\t{field[i+4]}\n')
