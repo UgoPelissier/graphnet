@@ -35,9 +35,6 @@ class MeshGraphNet(pl.LightningModule):
             hidden_dim: int,
             output_dim: int,
             optimizer: OptimizerCallable,
-            test_indices: List[int],
-            batch_size_test: int,
-            animate: bool,
             lr_scheduler: Optional[LRSchedulerCallable] = None
         ) -> None:
         super().__init__()
@@ -88,9 +85,6 @@ class MeshGraphNet(pl.LightningModule):
 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
-        self.test_index = 0
-        self.test_indices = test_indices
-        self.batch_size_test = batch_size_test
         self.version = f'version_{get_next_version(self.logs)}'
         
     def build_processor_model(self):
