@@ -136,7 +136,6 @@ class MeshDataset(Dataset):
         """Process the dataset."""
         os.makedirs(os.path.join(self.processed_dir, self.split), exist_ok=True)
 
-        data_list = []
         print(f'{self.split} dataset')
         with alive_bar(total=len(self.processed_file_names)) as bar:
             for data in self.raw_file_names:
