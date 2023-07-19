@@ -26,6 +26,7 @@ class MeshGraphNet(pl.LightningModule):
     """Lightning module for the MeshNet model."""
     def __init__(
             self,
+            dir: str,
             wdir: str,
             data_dir: str,
             logs: str,
@@ -40,6 +41,7 @@ class MeshGraphNet(pl.LightningModule):
         ) -> None:
         super().__init__()
 
+        self.dir = dir
         self.wdir = wdir
         self.data_dir = data_dir
         self.logs = logs
@@ -195,7 +197,7 @@ class MeshGraphNet(pl.LightningModule):
 
         runner = FreeFemRunner(script=osp.join(self.wdir, 'model', 'adapt.edp'), run_dir=osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
         runner.import_variables(
-            mesh_dir=osp.join(self.data_dir, 'raw', 'mesh'),
+            mesh_dir=osp.join(self.dir, 'meshnet', 'logs', self.version, 'test', 'mesh'),
             name=batch.name[0],
             wdir=osp.join(self.logs, self.version, 'test', batch.name[0]),
             field_dir=osp.join(self.logs, self.version, 'test', batch.name[0], 'field'),
