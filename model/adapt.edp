@@ -1,0 +1,33 @@
+IMPORT "io.edp"
+load "iovtk"
+load "msh3"
+
+
+
+string msh = importString("mesh_dir");
+string name = importString("name");
+string wdir = importString("wdir");
+string field = importString("field_dir");
+
+mesh Th = readmesh(msh + "/" + name + ".msh");
+
+fespace Xh(Th,P1);
+Xh u, uPred;
+{
+    ifstream uFile(field + "/" + "u.txt");
+    uFile >> u[] ;
+}
+{
+    ifstream uPredFile(field + "/" + "u_pred.txt");
+    uPredFile >> uPred[] ;
+}
+
+real error = 0.01;
+mesh Th2 = adaptmesh(Th, u, err=error);
+mesh Th3 = adaptmesh(Th, uPred, err=error);
+
+savemesh(Th2, wdir + "/" + "msh/" + name + "_adapt_true.msh");
+savemesh(Th3, wdir + "/" + "msh/" + name + "_adapt_pred.msh");
+
+savevtk(wdir + "/" + "vtu/" + name + "_adapt_true.vtu", Th2, bin=false);
+savevtk(wdir + "/" + "vtu/" + name + "_adapt_pred.vtu", Th3, bin=false);
