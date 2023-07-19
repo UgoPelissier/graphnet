@@ -31,7 +31,6 @@ class MeshDataset(Dataset):
     def __init__(
             self,
             data_dir: str,
-            dataset_name: str,
             u_0: float,
             v_0: float,
             split: str,
@@ -40,7 +39,6 @@ class MeshDataset(Dataset):
             pre_transform: Optional[Callable] = None
     ) -> None:
         self.data_dir = data_dir
-        self.dataset_name = dataset_name
         self.u_0 = u_0
         self.v_0 = v_0
         self.split = split
@@ -65,7 +63,7 @@ class MeshDataset(Dataset):
         self.num_accs_edge = 0
         self.num_accs_y = 0
 
-        super().__init__(osp.join(self.data_dir, self.dataset_name), transform, pre_transform)
+        super().__init__(self.data_dir, transform, pre_transform)
 
     @property
     def raw_file_names(self) -> list: 
@@ -140,7 +138,7 @@ class MeshDataset(Dataset):
         with alive_bar(total=len(self.processed_file_names)) as bar:
             for data in self.raw_file_names:
                 # read vtu file
-                mesh = meshio.read(osp.join(self.raw_dir, data))
+                mesh = meshio.read(osp.join(self.raw_dir, 'sol', data))
 
                 # node type
                 node_type = torch.zeros(mesh.points.shape[0])
@@ -169,7 +167,7 @@ class MeshDataset(Dataset):
                 edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
 
                 # node outputs, for training (velocity)
-                v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'))).transpose())
+                v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, 'sol', data), 'u'), cell2point(osp.join(self.raw_dir, 'sol', data), 'v'))).transpose())
                 y = v.type(torch.float)
 
                 self.update_stats(x, edge_attr, y)

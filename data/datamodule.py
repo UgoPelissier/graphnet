@@ -9,7 +9,6 @@ class MeshDataModule(pl.LightningDataModule):
     def __init__(
             self,
             data_dir: str,
-            dataset_name: str,
             val_size: float,
             test_size: float,
             u_0: float,
@@ -24,11 +23,11 @@ class MeshDataModule(pl.LightningDataModule):
         self.batch_size_test = batch_size_test
 
         # Define the indices
-        train_index, val_index, test_index = train_val_test_split(data_dir=data_dir, name=dataset_name, n=len(os.listdir(osp.join(data_dir, dataset_name, 'raw'))), val_size=val_size, test_size=test_size)
+        train_index, val_index, test_index = train_val_test_split(data_dir=data_dir, n=len(os.listdir(osp.join(data_dir, 'raw', 'sol'))), val_size=val_size, test_size=test_size)
         
-        self.train_ds = MeshDataset(data_dir, dataset_name, u_0, v_0, split="train", indices=train_index)
-        self.valid_ds = MeshDataset(data_dir, dataset_name, u_0, v_0, split="valid", indices=val_index)
-        self.test_ds = MeshDataset(data_dir, dataset_name, u_0, v_0, split="test", indices=test_index)
+        self.train_ds = MeshDataset(data_dir, u_0, v_0, split="train", indices=train_index)
+        self.valid_ds = MeshDataset(data_dir, u_0, v_0, split="valid", indices=val_index)
+        self.test_ds = MeshDataset(data_dir, u_0, v_0, split="test", indices=test_index)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, num_workers=8)
