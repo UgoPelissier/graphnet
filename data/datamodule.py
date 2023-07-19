@@ -23,7 +23,7 @@ class MeshDataModule(pl.LightningDataModule):
         self.batch_size_test = batch_size_test
 
         # Define the indices
-        train_index, val_index, test_index = train_val_test_split(data_dir=data_dir, n=len(os.listdir(osp.join(data_dir, 'raw', 'sol'))), val_size=val_size, test_size=test_size)
+        train_index, val_index, test_index = train_val_test_split(path=data_dir, n=len(os.listdir(osp.join(data_dir, 'raw', 'sol'))), val_size=val_size, test_size=test_size)
         
         self.train_ds = MeshDataset(data_dir, u_0, v_0, split="train", indices=train_index)
         self.valid_ds = MeshDataset(data_dir, u_0, v_0, split="valid", indices=val_index)
