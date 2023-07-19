@@ -21,18 +21,16 @@ class MyLightningCLI(LightningCLI):
         logger = {
             "class_path": "lightning.pytorch.loggers.TensorBoardLogger",
             "init_args": {
-                # "save_dir": "/data/users/upelissier/30-Code/graphnet/",
-                "save_dir": "/home/eleve05/safran/graphnet/",
+                "save_dir": "/data/users/upelissier/30-Code/graphnet/",
+                # "save_dir": "/home/eleve05/safran/graphnet/",
                 "name": "logs/"
             },
         }
 
         parser.set_defaults(
             {
-                # "data.data_raw": "/data/users/upelissier/30-Code/freefem/",
-                # "data.data_processed": "/data/users/upelissier/30-Code/graphnet/data/",
-                "data.data_dir": "/home/eleve05/safran/graphnet/data/",
-                "data.dataset_name": "stokes/uniform",
+                "data.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/",
+                # "data.data_dir": "/home/eleve05/safran/graphnet/data/stokes/uniform/",
                 "data.val_size": 0.15,
                 "data.test_size": 0.1,
                 "data.u_0": 1.0,
@@ -41,13 +39,12 @@ class MyLightningCLI(LightningCLI):
                 "data.batch_size_valid": 1,
                 "data.batch_size_test": 1,
 
-                # "model.path": "/home/upelissier/30-Code/graphnet/",
-                # "model.dataset": "/data/users/upelissier/30-Code/graphnet/data/",
-                # "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
-                "model.path": "/home/eleve05/safran/graphnet/",
-                "model.data_dir": "/home/eleve05/safran/graphnet/data/",
-                "model.dataset_name": "stokes/uniform",
-                "model.logs": "/home/eleve05/safran/graphnet/logs/",
+                "model.path": "/home/upelissier/30-Code/graphnet/",
+                "model.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/",
+                "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
+                # "model.path": "/home/eleve05/safran/graphnet/",
+                # "model.data_dir": "/home/eleve05/safran/graphnet/data/stokes/uniform/",
+                # "model.logs": "/home/eleve05/safran/graphnet/logs/",
                 "model.noise_std": 2e-2,
                 "model.num_layers": 15,
                 "model.input_dim_node": 7,
@@ -55,7 +52,6 @@ class MyLightningCLI(LightningCLI):
                 "model.hidden_dim": 128,
                 "model.output_dim": 2,
                 "model.optimizer": "torch.optim.AdamW",
-                "model.animate": True,
 
                 "trainer.max_epochs": 1000,
                 "trainer.accelerator": "gpu",
