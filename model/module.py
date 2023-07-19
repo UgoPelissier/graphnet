@@ -1,3 +1,4 @@
+import shutil
 from typing import Optional, List, Tuple, Union
 import os
 import os.path as osp
@@ -19,11 +20,13 @@ from torch_geometric.data import Data
 import lightning.pytorch as pl
 from lightning.pytorch.cli import OptimizerCallable, LRSchedulerCallable
 
+from pyfreefem import FreeFemRunner
 
 class MeshGraphNet(pl.LightningModule):
     """Lightning module for the MeshNet model."""
     def __init__(
             self,
+            wdir: str,
             data_dir: str,
             logs: str,
             noise_std: float,
@@ -37,6 +40,7 @@ class MeshGraphNet(pl.LightningModule):
         ) -> None:
         super().__init__()
 
+        self.wdir = wdir
         self.data_dir = data_dir
         self.logs = logs
         self.noise_std = noise_std
@@ -152,12 +156,18 @@ class MeshGraphNet(pl.LightningModule):
         loss = self.loss(pred, batch, split='val')
         self.log('valid/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
+    
+    def on_test_start(self) -> None:
+        """Load stats and create the output folder for the test."""
+        self.load_stats()
+        os.makedirs(os.path.join(self.logs, self.version, 'test'), exist_ok=True)
+        os.makedirs(os.path.join(self.logs, self.version, 'test', 'tmp'), exist_ok=True)
 
     def test_step(self, batch: Data, batch_idx: int) -> None:
         """Test step of the model."""
-        self.load_stats()
-        os.makedirs(os.path.join(self.logs, self.version, 'output'), exist_ok=True)
-        os.makedirs(os.path.join(self.logs, self.version, 'output', batch.name[0]), exist_ok=True)
+        os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0]), exist_ok=True)
+        os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'vtu'), exist_ok=True)
+        os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'msh'), exist_ok=True)
 
         pred = self(batch, split='train')
         loss = self.loss(pred, batch, split='train')
@@ -175,12 +185,23 @@ class MeshGraphNet(pl.LightningModule):
                         'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
                         'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy(),}
         )
-        mesh.write(osp.join(self.logs, self.version, 'output', batch.name[0], f'{batch.name[0]}_pred.vtu'), binary=False)
+        mesh.write(osp.join(self.logs, self.version, 'test', batch.name[0], 'vtu', f'{batch.name[0]}_pred.vtu'), binary=False)
 
-        self.write_field(batch, batch.y[:,0], 'u')
-        self.write_field(batch, batch.y[:,1], 'v')
-        self.write_field(batch, pred[:,0], 'u_pred')
-        self.write_field(batch, pred[:,1], 'v_pred')
+        os.makedirs(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), exist_ok=True)
+        self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y[:,0], 'u')
+        self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y[:,1], 'v')
+        self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,0], 'u_pred')
+        self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,1], 'v_pred')
+
+        runner = FreeFemRunner(script=osp.join(self.wdir, 'model', 'adapt.edp'), run_dir=osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
+        runner.import_variables(
+            mesh_dir=osp.join(self.data_dir, 'raw', 'mesh'),
+            name=batch.name[0],
+            wdir=osp.join(self.logs, self.version, 'test', batch.name[0]),
+            field_dir=osp.join(self.logs, self.version, 'test', batch.name[0], 'field'),
+            )
+        runner.execute()
+        shutil.rmtree(osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
@@ -207,9 +228,8 @@ class MeshGraphNet(pl.LightningModule):
         v_noise[mask]=0
         return v_noise
     
-    def write_field(self, batch: Data, field: torch.Tensor, name: str) -> None:
-        # field = field.detach().cpu().numpy()
-        with open(osp.join(self.logs, self.version, 'output', batch.name[0], f'{name}.txt'), 'w') as f:
+    def write_field(self, path:str, field: torch.Tensor, name: str) -> None:
+        with open(osp.join(path, f'{name}.txt'), 'w') as f:
             f.write(f'{len(field)}\t\n')
             for i in range(0, len(field), 5):
                 if (i+5>len(field)):
