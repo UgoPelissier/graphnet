@@ -39,6 +39,7 @@ class MyLightningCLI(LightningCLI):
                 "data.batch_size_valid": 1,
                 "data.batch_size_test": 1,
 
+                "model.wdir": "/gpfs_new/home/upelissier/30-Code/graphnet/",
                 "model.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/",
                 "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
                 # "model.path": "/home/eleve05/safran/graphnet/",
