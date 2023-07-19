@@ -39,7 +39,6 @@ class MyLightningCLI(LightningCLI):
                 "data.batch_size_valid": 1,
                 "data.batch_size_test": 1,
 
-                "model.path": "/home/upelissier/30-Code/graphnet/",
                 "model.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/",
                 "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
                 # "model.path": "/home/eleve05/safran/graphnet/",
@@ -64,7 +63,6 @@ class MyLightningCLI(LightningCLI):
         )
 
 if __name__ == '__main__':
-    """https://medium.com/stanford-cs224w/learning-mesh-based-flow-simulations-on-graph-networks-44983679cf2d"""
     cli = MyLightningCLI(
         model_class=MeshGraphNet,
         datamodule_class=MeshDataModule,

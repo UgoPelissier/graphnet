@@ -24,7 +24,6 @@ class MeshGraphNet(pl.LightningModule):
     """Lightning module for the MeshNet model."""
     def __init__(
             self,
-            path: str,
             data_dir: str,
             logs: str,
             noise_std: float,
@@ -38,7 +37,6 @@ class MeshGraphNet(pl.LightningModule):
         ) -> None:
         super().__init__()
 
-        self.path = path
         self.data_dir = data_dir
         self.logs = logs
         self.noise_std = noise_std
