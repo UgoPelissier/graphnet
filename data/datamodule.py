@@ -1,8 +1,10 @@
 import lightning.pytorch as pl
 import os
 import os.path as osp
-from utils.utils import train_val_test_split
-from data.dataset import MeshDataset
+
+from graphnet.utils.utils import train_val_test_split
+from graphnet.data.dataset import MeshDataset
+
 from torch_geometric.loader import DataLoader
 
 class MeshDataModule(pl.LightningDataModule):

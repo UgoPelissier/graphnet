@@ -1,5 +1,5 @@
-from data.datamodule import MeshDataModule
-from model.module import MeshGraphNet
+from graphnet.data.datamodule import MeshDataModule
+from graphnet.model.module import MeshGraphNet
 
 from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
 

@@ -9,7 +9,7 @@ import numpy as np
 import enum
 import meshio
 from alive_progress import alive_bar
-from utils.utils import cell2point
+from graphnet.utils.utils import cell2point
 
 
 class NodeType(enum.IntEnum):

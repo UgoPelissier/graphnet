@@ -4,10 +4,10 @@ import os
 import os.path as osp
 import meshio
 
-from utils.stats import normalize, load_stats
-from utils.utils import get_next_version
-from data.dataset import NodeType
-from model.processor import ProcessorLayer
+from graphnet.utils.stats import normalize, load_stats
+from graphnet.utils.utils import get_next_version
+from graphnet.data.dataset import NodeType
+from graphnet.model.processor import ProcessorLayer
 
 import torch
 from torch.nn import Linear, Sequential, LayerNorm, ReLU
