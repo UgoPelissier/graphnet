@@ -2,8 +2,6 @@ IMPORT "io.edp"
 load "iovtk"
 load "msh3"
 
-
-
 string msh = importString("mesh_dir");
 string name = importString("name");
 string wdir = importString("wdir");
