@@ -4,7 +4,7 @@ import os
 import os.path as osp
 import meshio
 
-from graphnet.utils.stats import normalize, load_stats
+from graphnet.utils.stats import load_stats, normalize, unnormalize
 from graphnet.utils.utils import get_next_version
 from graphnet.data.dataset import NodeType
 from graphnet.model.processor import ProcessorLayer
@@ -92,7 +92,15 @@ class MeshGraphNet(pl.LightningModule):
     def build_processor_model(self):
         return ProcessorLayer
 
-    def forward(self, batch: Data, split: str):
+    def forward(
+            self,
+            batch: Data,
+            split: str,
+            mean_vec_x_predict: Optional[torch.Tensor] = None,
+            mean_vec_edge_predict: Optional[torch.Tensor] = None,
+            std_vec_x_predict: Optional[torch.Tensor] = None,
+            std_vec_edge_predict: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Encoder encodes graph (node/edge features) into latent vectors (node/edge embeddings)
         The return of processor is fed into the processor for generating new feature vectors
@@ -105,6 +113,8 @@ class MeshGraphNet(pl.LightningModule):
             x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_val, self.mean_vec_edge_val], std=[self.std_vec_x_val, self.std_vec_edge_val])
         elif split == 'test':
             x, edge_attr = normalize(data=[x, edge_attr], mean=[self.mean_vec_x_test, self.mean_vec_edge_test], std=[self.std_vec_x_test, self.std_vec_edge_test])
+        elif split == 'predict':
+            x, edge_attr = normalize(data=[x, edge_attr], mean=[mean_vec_x_predict, mean_vec_edge_predict], std=[std_vec_x_predict, std_vec_edge_predict]) # type: ignore
         else:
             raise ValueError(f'Invalid split: {split}')
 
@@ -171,7 +181,11 @@ class MeshGraphNet(pl.LightningModule):
         os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'vtu'), exist_ok=True)
         os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'msh'), exist_ok=True)
 
-        pred = self(batch, split='train')
+        pred = unnormalize(
+            data=self(batch, split='train'),
+            mean=self.mean_vec_y_train,
+            std=self.std_vec_y_train
+        )
         loss = self.loss(pred, batch, split='train')
         self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 

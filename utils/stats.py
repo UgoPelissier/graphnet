@@ -52,11 +52,11 @@ def normalize(
 
 
 def unnormalize(
-        data: Union[torch.Tensor, List[torch.Tensor]],
-        mean: Union[torch.Tensor, List[torch.Tensor]],
-        std: Union[torch.Tensor, List[torch.Tensor]]
-    ) -> Union[torch.Tensor, List[torch.Tensor]]:
+        data: torch.Tensor,
+        mean: torch.Tensor,
+        std: torch.Tensor
+    ) -> torch.Tensor:
     """Normalize the data."""
     if isinstance(data, list):
-        return [normalize(d, m, s) for d, m, s in zip(data, mean, std)] # type: ignore
+        return [unnormalize(d, m, s) for d, m, s in zip(data, mean, std)] # type: ignore
     return (data * std) + mean
