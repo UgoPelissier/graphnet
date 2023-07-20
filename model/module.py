@@ -211,7 +211,7 @@ class MeshGraphNet(pl.LightningModule):
 
         runner = FreeFemRunner(script=osp.join(self.wdir, 'model', 'adapt.edp'), run_dir=osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
         runner.import_variables(
-            mesh_dir=osp.join(self.dir, 'meshnet', 'logs', self.version, 'test', 'mesh'),
+            mesh_dir=osp.join(self.data_dir, 'raw', 'mesh'),
             name=batch.name[0],
             wdir=osp.join(self.logs, self.version, 'test', batch.name[0]),
             field_dir=osp.join(self.logs, self.version, 'test', batch.name[0], 'field'),

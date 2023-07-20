@@ -9,7 +9,7 @@ string name = importString("name");
 string wdir = importString("wdir");
 string field = importString("field_dir");
 
-mesh Th = readmesh(msh + "/" + name + "_pred" + ".msh");
+mesh Th = readmesh(msh + "/" + name + ".msh");
 
 fespace Xh(Th,P1);
 Xh u, uPred;
