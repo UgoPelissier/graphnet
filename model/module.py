@@ -88,6 +88,8 @@ class MeshGraphNet(pl.LightningModule):
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.version = f'version_{get_next_version(self.logs)}'
+
+        self.load_stats()
         
     def build_processor_model(self):
         return ProcessorLayer
@@ -162,16 +164,13 @@ class MeshGraphNet(pl.LightningModule):
 
     def validation_step(self, batch: Data, batch_idx: int) -> torch.Tensor:
         """Validation step of the model."""
-        if self.trainer.sanity_checking:
-            self.load_stats()
         pred = self(batch, split='val')
         loss = self.loss(pred, batch, split='val')
         self.log('valid/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         return loss
     
     def on_test_start(self) -> None:
-        """Load stats and create the output folder for the test."""
-        self.load_stats()
+        """Create the output folder for the test."""
         os.makedirs(os.path.join(self.logs, self.version, 'test'), exist_ok=True)
         os.makedirs(os.path.join(self.logs, self.version, 'test', 'tmp'), exist_ok=True)
 
