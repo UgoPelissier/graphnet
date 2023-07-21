@@ -30,7 +30,6 @@ class MeshGraphNet(pl.LightningModule):
             wdir: str,
             data_dir: str,
             logs: str,
-            noise_std: float,
             num_layers: int,
             input_dim_node: int,
             input_dim_edge: int,
@@ -45,7 +44,6 @@ class MeshGraphNet(pl.LightningModule):
         self.wdir = wdir
         self.data_dir = data_dir
         self.logs = logs
-        self.noise_std = noise_std
         self.num_layers = num_layers
 
         # encoder convert raw inputs into latent embeddings
@@ -234,14 +232,6 @@ class MeshGraphNet(pl.LightningModule):
         self.mean_vec_x_train, self.std_vec_x_train, self.mean_vec_edge_train, self.std_vec_edge_train, self.mean_vec_y_train, self.std_vec_y_train = train_stats
         self.mean_vec_x_val, self.std_vec_x_val, self.mean_vec_edge_val, self.std_vec_edge_val, self.mean_vec_y_val, self.std_vec_y_val = val_stats
         self.mean_vec_x_test, self.std_vec_x_test, self.mean_vec_edge_test, self.std_vec_edge_test, self.mean_vec_y_test, self.std_vec_y_test = test_stats
-    
-    def v_noise(self, batch: Data, noise_std: float) -> torch.Tensor:
-        """Return noise to add to the velocity field."""
-        v = batch.x[:,:2]
-        v_noise = torch.normal(std=noise_std, mean=0.0, size=v.shape).to(self.device)
-        mask = torch.argmax(batch.x[:,2:],dim=1)!=torch.tensor(NodeType.NORMAL)
-        v_noise[mask]=0
-        return v_noise
     
     def write_field(self, path:str, field: torch.Tensor, name: str) -> None:
         with open(osp.join(path, f'{name}.txt'), 'w') as f:
