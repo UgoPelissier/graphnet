@@ -22,7 +22,6 @@ class MyLightningCLI(LightningCLI):
             "class_path": "lightning.pytorch.loggers.TensorBoardLogger",
             "init_args": {
                 "save_dir": "/data/users/upelissier/30-Code/graphnet/",
-                # "save_dir": "/home/eleve05/safran/graphnet/",
                 "name": "logs/"
             },
         }
@@ -30,7 +29,6 @@ class MyLightningCLI(LightningCLI):
         parser.set_defaults(
             {
                 "data.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/",
-                # "data.data_dir": "/home/eleve05/safran/graphnet/data/stokes/uniform/",
                 "data.val_size": 0.15,
                 "data.test_size": 0.1,
                 "data.u_0": 1.0,
@@ -43,10 +41,6 @@ class MyLightningCLI(LightningCLI):
                 "model.wdir": "/home/upelissier/30-Code/graphnet/",
                 "model.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/",
                 "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
-                # "model.dir": "/home/eleve05/safran/",
-                # "model.wdir": "/home/eleve05/safran/graphnet/",
-                # "model.data_dir": "/home/eleve05/safran/graphnet/data/stokes/uniform/",
-                # "model.logs": "/home/eleve05/safran/graphnet/logs/",
                 "model.num_layers": 15,
                 "model.input_dim_node": 7,
                 "model.input_dim_edge": 3,
