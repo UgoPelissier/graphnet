@@ -1,5 +1,5 @@
 from graphnet.data.datamodule import MeshDataModule
-from graphnet.model.module import MeshGraphNet
+from graphnet.model.module import GraphNet
 
 from lightning.pytorch.cli import LightningCLI, LightningArgumentParser
 
@@ -60,7 +60,7 @@ class MyLightningCLI(LightningCLI):
 
 if __name__ == '__main__':
     cli = MyLightningCLI(
-        model_class=MeshGraphNet,
+        model_class=GraphNet,
         datamodule_class=MeshDataModule,
         seed_everything_default=42,
     )

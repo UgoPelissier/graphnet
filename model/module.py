@@ -22,7 +22,7 @@ from lightning.pytorch.cli import OptimizerCallable, LRSchedulerCallable
 
 from pyfreefem import FreeFemRunner
 
-class MeshGraphNet(pl.LightningModule):
+class GraphNet(pl.LightningModule):
     """Lightning module for the MeshNet model."""
     def __init__(
             self,
