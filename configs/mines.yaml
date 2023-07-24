@@ -9,7 +9,7 @@ trainer:
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      save_dir: /home/eleve05/safran/graphnet/
+      save_dir: /home/eleve05/adaptnet/graphnet/
       name: logs/
       version: null
       log_graph: false
@@ -66,10 +66,10 @@ trainer:
   reload_dataloaders_every_n_epochs: 0
   default_root_dir: null
 model:
-  dir: /home/eleve05/safran/
-  wdir: /home/eleve05/safran/graphnet/
-  data_dir: /home/eleve05/safran/graphnet/data/stokes/uniform/
-  logs: /home/eleve05/safran/graphnet/logs/
+  dir: /home/eleve05/adaptnet/
+  wdir: /home/eleve05/adaptnet/graphnet/
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes/
+  logs: /home/eleve05/adaptnet/graphnet/logs/
   num_layers: 15
   input_dim_node: 7
   input_dim_edge: 3
@@ -92,7 +92,7 @@ model:
       fused: null
   lr_scheduler: null
 data:
-  data_dir: /home/eleve05/safran/graphnet/data/stokes/uniform/
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes/
   val_size: 0.15
   test_size: 0.1
   u_0: 1.0
