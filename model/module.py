@@ -179,13 +179,15 @@ class GraphNet(pl.LightningModule):
         os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'vtu'), exist_ok=True)
         os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'msh'), exist_ok=True)
 
+        pred = self(batch, split='train')
+        loss = self.loss(pred, batch, split='train')
+        self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+
         pred = unnormalize(
-            data=self(batch, split='train'),
+            data=pred,
             mean=self.mean_vec_y_train,
             std=self.std_vec_y_train
         )
-        loss = self.loss(pred, batch, split='train')
-        self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
 
         mesh = meshio.Mesh(
             points=batch.mesh_pos.cpu().numpy(),
