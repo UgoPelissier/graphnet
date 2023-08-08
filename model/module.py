@@ -171,7 +171,7 @@ class GraphNet(pl.LightningModule):
         """Create the output folder for the test."""
         self.load_stats()
         os.makedirs(os.path.join(self.logs, self.version, 'test'), exist_ok=True)
-        os.makedirs(os.path.join(self.logs, self.version, 'test', 'tmp'), exist_ok=True)
+        # os.makedirs(os.path.join(self.logs, self.version, 'test', 'tmp'), exist_ok=True)
 
     def test_step(self, batch: Data, batch_idx: int) -> None:
         """Test step of the model."""
@@ -207,15 +207,15 @@ class GraphNet(pl.LightningModule):
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,0], 'u_pred')
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,1], 'v_pred')
 
-        runner = FreeFemRunner(script=osp.join(self.wdir, 'model', 'adapt.edp'), run_dir=osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
-        runner.import_variables(
-            mesh_dir=osp.join(self.data_dir, 'raw', 'mesh'),
-            name=batch.name[0],
-            wdir=osp.join(self.logs, self.version, 'test', batch.name[0]),
-            field_dir=osp.join(self.logs, self.version, 'test', batch.name[0], 'field'),
-            )
-        runner.execute()
-        shutil.rmtree(osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
+        # runner = FreeFemRunner(script=osp.join(self.wdir, 'model', 'adapt.edp'), run_dir=osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
+        # runner.import_variables(
+        #     mesh_dir=osp.join(self.data_dir, 'raw', 'mesh'),
+        #     name=batch.name[0],
+        #     wdir=osp.join(self.logs, self.version, 'test', batch.name[0]),
+        #     field_dir=osp.join(self.logs, self.version, 'test', batch.name[0], 'field'),
+        #     )
+        # runner.execute()
+        # shutil.rmtree(osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
