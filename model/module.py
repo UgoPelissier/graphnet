@@ -176,7 +176,6 @@ class GraphNet(pl.LightningModule):
     def test_step(self, batch: Data, batch_idx: int) -> None:
         """Test step of the model."""
         os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0]), exist_ok=True)
-        os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'vtk'), exist_ok=True)
         os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'vtu'), exist_ok=True)
 
         pred = self(batch, split='train')
@@ -201,7 +200,6 @@ class GraphNet(pl.LightningModule):
                         'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
                         'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy(),}
         )
-        mesh.write(osp.join(self.logs, self.version, 'test', batch.name[0], 'vtk', f'{batch.name[0]}_pred.vtk'), binary=False)
         mesh.write(osp.join(self.logs, self.version, 'test', batch.name[0], 'vtu', f'{batch.name[0]}_pred.vtu'), binary=False)
 
         os.makedirs(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), exist_ok=True)
