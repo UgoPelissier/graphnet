@@ -34,6 +34,7 @@ class MeshDataset(Dataset):
             dim: int,
             u_0: float,
             v_0: float,
+            w_0: float,
             split: str,
             indices: np.ndarray,
             transform: Optional[Callable] = None,
@@ -43,22 +44,25 @@ class MeshDataset(Dataset):
         self.dim = dim
         self.u_0 = u_0
         self.v_0 = v_0
+        self.w_0 = w_0
         self.split = split
         self.idx = indices
 
         self.eps = torch.tensor(1e-8)
 
         # mean and std of the node features are calculated
-        self.mean_vec_x = torch.zeros(7)
-        self.std_vec_x = torch.zeros(7)
+        self.vec_x_size = self.dim + NodeType.SIZE
+        self.mean_vec_x = torch.zeros(self.vec_x_size)
+        self.std_vec_x = torch.zeros(self.vec_x_size)
 
         # mean and std of the edge features are calculated
-        self.mean_vec_edge = torch.zeros(3)
-        self.std_vec_edge = torch.zeros(3)
+        self.vec_edge_size = self.dim + 1
+        self.mean_vec_edge = torch.zeros(self.vec_edge_size)
+        self.std_vec_edge = torch.zeros(self.vec_edge_size)
 
         # mean and std of the output parameters are calculated
-        self.mean_vec_y = torch.zeros(2)
-        self.std_vec_y = torch.zeros(2)
+        self.mean_vec_y = torch.zeros(self.dim)
+        self.std_vec_y = torch.zeros(self.dim)
 
         # define counters used in normalization
         self.num_accs_x  =  0
@@ -167,9 +171,14 @@ class MeshDataset(Dataset):
                             raise ValueError("The dimension must be either 2 or 3.")
 
                 # get initial velocity
-                v_0 = torch.zeros(mesh.points.shape[0], 2)
+                v_0 = torch.zeros(mesh.points.shape[0], self.dim)
                 mask = (node_type.long())==torch.tensor(NodeType.INFLOW)
-                v_0[mask] = torch.Tensor([self.u_0, self.v_0])
+                if (self.dim == 2):
+                    v_0[mask] = torch.Tensor([self.u_0, self.v_0])
+                elif (self.dim == 3):
+                    v_0[mask] = torch.Tensor([self.u_0, self.v_0, self.w_0])
+                else:
+                    raise ValueError("The dimension must be either 2 or 3.")
 
                 node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
 
@@ -180,14 +189,19 @@ class MeshDataset(Dataset):
                 edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
 
                 # get edge attributes
-                u_i = mesh.points[edge_index[0]][:,:2]
-                u_j = mesh.points[edge_index[1]][:,:2]
+                u_i = mesh.points[edge_index[0]][:,:self.dim]
+                u_j = mesh.points[edge_index[1]][:,:self.dim]
                 u_ij = torch.Tensor(u_i - u_j)
                 u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
                 edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
 
                 # node outputs, for training (velocity)
-                v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, 'sol', data), 'u'), cell2point(osp.join(self.raw_dir, 'sol', data), 'v'))).transpose())
+                if self.dim == 2:
+                    v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, 'sol', data), 'u'), cell2point(osp.join(self.raw_dir, 'sol', data), 'v'))).transpose())
+                elif self.dim == 3:
+                    v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, 'sol', data), 'u'), cell2point(osp.join(self.raw_dir, 'sol', data), 'v'), cell2point(osp.join(self.raw_dir, 'sol', data), 'w'))).transpose())
+                else:
+                    raise ValueError("The dimension must be either 2 or 3.")
                 y = v.type(torch.float)
 
                 self.update_stats(x, edge_attr, y)
