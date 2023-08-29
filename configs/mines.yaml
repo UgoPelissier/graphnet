@@ -3,7 +3,7 @@ seed_everything: 42
 trainer:
   accelerator: gpu
   strategy: auto
-  devices: 1
+  devices: 2
   num_nodes: 1
   precision: 32-true
   logger:
@@ -72,10 +72,7 @@ model:
   logs: /home/eleve05/adaptnet/graphnet/logs/
   dim: 3
   num_layers: 15
-  input_dim_node: 7
-  input_dim_edge: 3
   hidden_dim: 128
-  output_dim: 2
   optimizer:
     class_path: torch.optim.AdamW
     init_args:
