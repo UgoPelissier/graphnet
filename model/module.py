@@ -29,10 +29,7 @@ class GraphNet(pl.LightningModule):
             logs: str,
             dim: int,
             num_layers: int,
-            input_dim_node: int,
-            input_dim_edge: int,
             hidden_dim: int,
-            output_dim: int,
             optimizer: OptimizerCallable,
             lr_scheduler: Optional[LRSchedulerCallable] = None
         ) -> None:
@@ -46,6 +43,7 @@ class GraphNet(pl.LightningModule):
         self.num_layers = num_layers
 
         # encoder convert raw inputs into latent embeddings
+        input_dim_node = dim + NodeType.SIZE
         self.node_encoder = Sequential(Linear(input_dim_node, hidden_dim),
                                        ReLU(),
                                        Linear(hidden_dim, hidden_dim),
@@ -55,6 +53,7 @@ class GraphNet(pl.LightningModule):
                                        Linear(hidden_dim, hidden_dim),
                                        LayerNorm(hidden_dim))
 
+        input_dim_edge = dim + 1
         self.edge_encoder = Sequential(Linear(input_dim_edge, hidden_dim),
                                        ReLU(),
                                        Linear(hidden_dim, hidden_dim),
@@ -80,7 +79,7 @@ class GraphNet(pl.LightningModule):
                                   ReLU(),
                                   Linear(hidden_dim, hidden_dim),
                                   ReLU(),
-                                  Linear(hidden_dim, output_dim))
+                                  Linear(hidden_dim, dim))
 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -187,17 +186,27 @@ class GraphNet(pl.LightningModule):
             std=self.std_vec_y_train
         )
 
+        point_data={
+            'u_0': batch.v_0[:,0].cpu().numpy(),
+            'v_0': batch.v_0[:,1].cpu().numpy(),
+            'u': batch.y[:,0].cpu().numpy(),
+            'v': batch.y[:,1].cpu().numpy(),
+            'u_pred': pred[:,0].detach().cpu().numpy(),
+            'v_pred': pred[:,1].detach().cpu().numpy(),
+            'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
+            'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy()
+        }
+
+        if (self.dim==3):
+            point_data['w_0'] = batch.v_0[:,2].cpu().numpy()
+            point_data['w'] = batch.y[:,2].cpu().numpy()
+            point_data['w_pred'] = pred[:,2].detach().cpu().numpy()
+            point_data['w_error'] = (pred[:,2]-batch.y[:,2]).detach().cpu().numpy()
+
         mesh = meshio.Mesh(
             points=batch.mesh_pos.cpu().numpy(),
             cells={"tetra": batch.cells.cpu().numpy()},
-            point_data={'u_0': batch.v_0[:,0].cpu().numpy(),
-                        'v_0': batch.v_0[:,1].cpu().numpy(),
-                        'u': batch.y[:,0].cpu().numpy(),
-                        'v': batch.y[:,1].cpu().numpy(),
-                        'u_pred': pred[:,0].detach().cpu().numpy(),
-                        'v_pred': pred[:,1].detach().cpu().numpy(),
-                        'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
-                        'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy(),}
+            point_data=point_data
         )
         mesh.write(osp.join(self.logs, self.version, 'test', batch.name[0], 'vtu', f'{batch.name[0]}_pred.vtu'), binary=False)
 
@@ -206,6 +215,10 @@ class GraphNet(pl.LightningModule):
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y[:,1], 'v')
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,0], 'u_pred')
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,1], 'v_pred')
+
+        if (self.dim==3):
+            self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y[:,2], 'w')
+            self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,2], 'w_pred')
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""

@@ -45,10 +45,7 @@ class MyLightningCLI(LightningCLI):
                 "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
                 "model.dim": 3,
                 "model.num_layers": 15,
-                "model.input_dim_node": 7,
-                "model.input_dim_edge": 3,
                 "model.hidden_dim": 128,
-                "model.output_dim": 2,
                 "model.optimizer": "torch.optim.AdamW",
 
                 "trainer.max_epochs": 1000,
