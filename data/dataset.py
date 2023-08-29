@@ -67,11 +67,11 @@ class MeshDataset(Dataset):
 
     @property
     def raw_file_names(self) -> list: 
-        return ["stokes_{:03d}.vtu".format(i) for i in self.idx]
+        return ["cad_{:03d}.vtu".format(i) for i in self.idx]
 
     @property
     def processed_file_names(self) -> list:
-        return glob.glob(os.path.join(self.processed_dir, self.split, 'stokes_*.pt'))
+        return glob.glob(os.path.join(self.processed_dir, self.split, 'cad_*.pt'))
     
     def download(self) -> None:
         pass
@@ -183,5 +183,5 @@ class MeshDataset(Dataset):
         return len(self.processed_file_names)
     
     def get(self, idx: int) -> Data:
-        data = torch.load(os.path.join(self.processed_dir, self.split, "stokes_{:03d}.pt".format(self.idx[idx])))
+        data = torch.load(os.path.join(self.processed_dir, self.split, "cad_{:03d}.pt".format(self.idx[idx])))
         return data
