@@ -31,6 +31,7 @@ class MeshDataset(Dataset):
     def __init__(
             self,
             data_dir: str,
+            dim: int,
             u_0: float,
             v_0: float,
             split: str,
@@ -39,6 +40,7 @@ class MeshDataset(Dataset):
             pre_transform: Optional[Callable] = None
     ) -> None:
         self.data_dir = data_dir
+        self.dim = dim
         self.u_0 = u_0
         self.v_0 = v_0
         self.split = split
@@ -79,11 +81,21 @@ class MeshDataset(Dataset):
     def triangles_to_edges(self, faces: torch.Tensor) -> torch.Tensor:
         """Computes mesh edges from triangles."""
         # collect edges from triangles
-        edges = torch.vstack((faces[:, 0:2],
-                              faces[:, 1:3],
-                              torch.hstack((faces[:, 2].unsqueeze(dim=-1),
-                                            faces[:, 0].unsqueeze(dim=-1)))
-                            ))
+        if (self.dim == 2):
+            edges = torch.vstack((faces[:, 0:2],
+                                faces[:, 1:3],
+                                torch.hstack((faces[:, 2].unsqueeze(dim=-1),
+                                                faces[:, 0].unsqueeze(dim=-1)))
+                                ))
+        elif (self.dim == 3):
+            edges = torch.vstack((faces[:, 0:2],
+                                faces[:, 1:3],
+                                faces[:, 2:4],
+                                torch.hstack((faces[:, 3].unsqueeze(dim=-1),
+                                                faces[:, 0].unsqueeze(dim=-1)))
+                                ))
+        else:
+            raise ValueError("The dimension must be either 2 or 3.")
         receivers = torch.min(edges, dim=1).values
         senders = torch.max(edges, dim=1).values
         packed_edges = torch.stack([senders, receivers], dim=1)
@@ -144,7 +156,15 @@ class MeshDataset(Dataset):
                 node_type = torch.zeros(mesh.points.shape[0])
                 for i in range(mesh.cells[1].data.shape[0]):
                     for j in range(mesh.cells[1].data.shape[1]):
-                        node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
+                        if (self.dim == 2):
+                            node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
+                        elif (self.dim==3):
+                            if (mesh.cell_data['Label'][1][i] == 31) or (mesh.cell_data['Label'][1][i] == 32):
+                                node_type[mesh.cells[1].data[i,j]] = 3
+                            else:
+                                node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
+                        else:
+                            raise ValueError("The dimension must be either 2 or 3.")
 
                 # get initial velocity
                 v_0 = torch.zeros(mesh.points.shape[0], 2)
