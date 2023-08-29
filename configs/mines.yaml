@@ -92,8 +92,8 @@ model:
 data:
   data_dir: /home/eleve05/adaptnet/graphnet/data/stokes/
   dim: 3
-  val_size: 0.2
-  test_size: 0.2
+  val_size: 0.15
+  test_size: 0.1
   u_0: 1.0
   v_0: 0.0
   w_0: 0.0
