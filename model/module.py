@@ -1,4 +1,3 @@
-import shutil
 from typing import Optional, List, Tuple, Union
 import os
 import os.path as osp
@@ -20,8 +19,6 @@ from torch_geometric.data import Data
 import lightning.pytorch as pl
 from lightning.pytorch.cli import OptimizerCallable, LRSchedulerCallable
 
-from pyfreefem import FreeFemRunner
-
 class GraphNet(pl.LightningModule):
     """Lightning module for the MeshNet model."""
     def __init__(
@@ -30,6 +27,7 @@ class GraphNet(pl.LightningModule):
             wdir: str,
             data_dir: str,
             logs: str,
+            dim: int,
             num_layers: int,
             input_dim_node: int,
             input_dim_edge: int,
@@ -44,6 +42,7 @@ class GraphNet(pl.LightningModule):
         self.wdir = wdir
         self.data_dir = data_dir
         self.logs = logs
+        self.dim = dim
         self.num_layers = num_layers
 
         # encoder convert raw inputs into latent embeddings
@@ -190,7 +189,7 @@ class GraphNet(pl.LightningModule):
 
         mesh = meshio.Mesh(
             points=batch.mesh_pos.cpu().numpy(),
-            cells={"triangle": batch.cells.cpu().numpy()},
+            cells={"tetra": batch.cells.cpu().numpy()},
             point_data={'u_0': batch.v_0[:,0].cpu().numpy(),
                         'v_0': batch.v_0[:,1].cpu().numpy(),
                         'u': batch.y[:,0].cpu().numpy(),
@@ -207,16 +206,6 @@ class GraphNet(pl.LightningModule):
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y[:,1], 'v')
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,0], 'u_pred')
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,1], 'v_pred')
-
-        # runner = FreeFemRunner(script=osp.join(self.wdir, 'model', 'adapt.edp'), run_dir=osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
-        # runner.import_variables(
-        #     mesh_dir=osp.join(self.data_dir, 'raw', 'mesh'),
-        #     name=batch.name[0],
-        #     wdir=osp.join(self.logs, self.version, 'test', batch.name[0]),
-        #     field_dir=osp.join(self.logs, self.version, 'test', batch.name[0], 'field'),
-        #     )
-        # runner.execute()
-        # shutil.rmtree(osp.join(self.logs, self.version, 'test', 'tmp', batch.name[0]))
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
