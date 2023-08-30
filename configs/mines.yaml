@@ -68,7 +68,7 @@ trainer:
 model:
   dir: /home/eleve05/adaptnet/
   wdir: /home/eleve05/adaptnet/graphnet/
-  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes/
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/
   logs: /home/eleve05/adaptnet/graphnet/logs/
   dim: 3
   num_layers: 15
@@ -90,7 +90,7 @@ model:
       fused: null
   lr_scheduler: null
 data:
-  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes/
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/
   dim: 3
   val_size: 0.15
   test_size: 0.1
