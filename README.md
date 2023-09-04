@@ -1,6 +1,4 @@
-# graphnet
-
-## Description
+# Graphnet
 
 Graphnet is a Graph Neural Network (GNN) model for the prediction of the stationnary physical solution of a PDE, given the mesh of the geometry. The framework is based on the [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/) library. The network is based on the [MeshGraphNets](https://arxiv.org/abs/2010.03409) architecture.
 
