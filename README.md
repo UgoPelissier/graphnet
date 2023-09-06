@@ -47,17 +47,21 @@ Last step is to move the `stokes2` and `stokes3` folders inside the `data` folde
 ```
 
 ### Train the model
-To train the model, run:
+To set the parameters, you can either change them inside the `main.py` file and train the model by running:
+```bash
+python main.py fit
+```
+or you can change them in the `configs/safran.yaml` file and train the model by running:
 ```bash
 python main.py fit -c configs/safran.yaml
 ```
-
-You can change the number of GPUs used by the model by changing the `gpus` parameter in the `configs/safran.yaml` file. You can also change the number of epochs, the learning rate, the batch size, etc. in this file.
 
 You can get help on the command line arguments by running:
 ```bash
 python main.py fit --help
 ```
+
+In both cases, it will create a new folder in the `logs/` folder containing the checkpoints of the model and a configuration file containing the parameters used for the training, that you can use later if you want.
 
 ### Evaluate the model
 To evaluate the model training, run:
@@ -89,17 +93,21 @@ git clone https://github.com/UgoPelissier/dataset.git
 ```
 
 ### Train the model
-To train the model, run:
+To set the parameters, you can either change them inside the `main.py` file and train the model by running:
 ```bash
-python main.py fit -c configs/mines.yaml
+python main.py fit
 ```
-
-You can change the number of GPUs used by the model by changing the `gpus` parameter in the `configs/mines.yaml` file. You can also change the number of epochs, the learning rate, the batch size, etc. in this file.
+or you can change them in the `configs/safran.yaml` file and train the model by running:
+```bash
+python main.py fit -c configs/safran.yaml
+```
 
 You can get help on the command line arguments by running:
 ```bash
 python main.py fit --help
 ```
+
+In both cases, it will create a new folder in the `logs/` folder containing the checkpoints of the model and a configuration file containing the parameters used for the training, that you can use later if you want.
 
 ### Evaluate the model
 To evaluate the model training, run:
