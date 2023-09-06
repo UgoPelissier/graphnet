@@ -21,40 +21,40 @@ class MyLightningCLI(LightningCLI):
         logger = {
             "class_path": "lightning.pytorch.loggers.TensorBoardLogger",
             "init_args": {
-                "save_dir": "/data/users/upelissier/30-Code/graphnet/",
+                "save_dir": "/data/users/upelissier/30-Code/graphnet/",  # TODO: Parent directory of graphnet folder
                 "name": "logs/"
             },
         }
 
         parser.set_defaults(
             {
-                "data.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/",
-                "data.val_size": 0.15,
-                "data.test_size": 0.1,
-                "data.dim": 3,
-                "data.u_0": 1.0,
-                "data.v_0": 0.0,
-                "data.w_0": 0.0,
-                "data.batch_size_train": 1,
-                "data.batch_size_valid": 1,
-                "data.batch_size_test": 1,
+                "data.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/", # TODO: Data directory
+                "data.dim": 3, # TODO: Dimension of the problem
+                "data.val_size": 0.15, # Validation size
+                "data.test_size": 0.1, # Test size
+                "data.u_0": 1.0, # Boundary condition
+                "data.v_0": 0.0, # Boundary condition
+                "data.w_0": 0.0, # Boundary condition
+                "data.batch_size_train": 1, # Batch size
+                "data.batch_size_valid": 1, # Batch size
+                "data.batch_size_test": 1, # Batch size
 
-                "model.dir": "/data/users/upelissier/30-Code/",
-                "model.wdir": "/home/upelissier/30-Code/graphnet/",
-                "model.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes/",
-                "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/",
-                "model.dim": 3,
-                "model.num_layers": 15,
-                "model.hidden_dim": 128,
-                "model.optimizer": "torch.optim.AdamW",
+                "model.dir": "/data/users/upelissier/30-Code/", # TODO: Parent directory
+                "model.wdir": "/home/upelissier/30-Code/graphnet/", # TODO: Working directory
+                "model.data_dir": "/data/users/upelissier/30-Code/graphnet/data/stokes3/", # TODO: Data directory
+                "model.logs": "/data/users/upelissier/30-Code/graphnet/logs/", # TODO: Logs directory
+                "model.dim": 3, # TODO: Dimension of the problem
+                "model.num_layers": 15, # Number of layers
+                "model.hidden_dim": 128, # Hidden dimension
+                "model.optimizer": "torch.optim.AdamW", # Optimizer
 
-                "trainer.max_epochs": 1000,
-                "trainer.accelerator": "gpu",
-                "trainer.devices": 1,
-                "trainer.check_val_every_n_epoch": 1,
-                "trainer.log_every_n_steps": 1,
-                "trainer.logger": logger,
-                "trainer.callbacks": default_callbacks,
+                "trainer.max_epochs": 1000, # TODO: Maximum number of epochs
+                "trainer.accelerator": "gpu", # Accelerator
+                "trainer.devices": 2, # TODO: Number of devices
+                "trainer.check_val_every_n_epoch": 1, # Check validation every n epochs
+                "trainer.log_every_n_steps": 1, # Log every n steps
+                "trainer.logger": logger, # Logger
+                "trainer.callbacks": default_callbacks, # Callbacks
             },
         )
 
