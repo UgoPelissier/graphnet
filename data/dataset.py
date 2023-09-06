@@ -73,23 +73,12 @@ class MeshDataset(Dataset):
 
     @property
     def raw_file_names(self) -> list:
-        if self.dim==2:
-            return ["stokes_{:03d}.vtu".format(i) for i in self.idx]
-        elif self.dim==3:
-            return ["cad_{:03d}.vtu".format(i) for i in self.idx]
-        else:
-            raise ValueError("The dimension must be either 2 or 3.")
+        return ["cad_{:03d}.vtu".format(i) for i in self.idx]
 
     @property
     def processed_file_names(self) -> list:
-        if self.dim==2:
-            return glob.glob(os.path.join(self.processed_dir, self.split, 'stokes_*.pt'))
-        elif self.dim==3:
-            return glob.glob(os.path.join(self.processed_dir, self.split, 'cad_*.pt'))
-        else:
-            raise ValueError("The dimension must be either 2 or 3.")
+        return glob.glob(os.path.join(self.processed_dir, self.split, 'cad_*.pt'))
         
-    
     def download(self) -> None:
         pass
 
@@ -241,10 +230,5 @@ class MeshDataset(Dataset):
         return len(self.processed_file_names)
     
     def get(self, idx: int) -> Data:
-        if self.dim==2:
-            data = torch.load(os.path.join(self.processed_dir, self.split, "stokes_{:03d}.pt".format(self.idx[idx])))
-        elif self.dim==3:
-            data = torch.load(os.path.join(self.processed_dir, self.split, "cad_{:03d}.pt".format(self.idx[idx])))
-        else:
-            raise ValueError("The dimension must be either 2 or 3.")
+        data = torch.load(os.path.join(self.processed_dir, self.split, "cad_{:03d}.pt".format(self.idx[idx])))
         return data
