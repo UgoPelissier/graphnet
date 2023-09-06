@@ -96,21 +96,29 @@ class MeshDataset(Dataset):
     def triangles_to_edges(self, faces: torch.Tensor) -> torch.Tensor:
         """Computes mesh edges from triangles."""
         # collect edges from triangles
-        if (self.dim == 2):
-            edges = torch.vstack((faces[:, 0:2],
-                                faces[:, 1:3],
-                                torch.hstack((faces[:, 2].unsqueeze(dim=-1),
-                                                faces[:, 0].unsqueeze(dim=-1)))
-                                ))
-        elif (self.dim == 3):
-            edges = torch.vstack((faces[:, 0:2],
-                                faces[:, 1:3],
-                                faces[:, 2:4],
-                                torch.hstack((faces[:, 3].unsqueeze(dim=-1),
-                                                faces[:, 0].unsqueeze(dim=-1)))
-                                ))
-        else:
-            raise ValueError("The dimension must be either 2 or 3.")
+        edges = torch.vstack((faces[:, 0:2],
+                            faces[:, 1:3],
+                            torch.hstack((faces[:, 2].unsqueeze(dim=-1),
+                                            faces[:, 0].unsqueeze(dim=-1)))
+                            ))
+        receivers = torch.min(edges, dim=1).values
+        senders = torch.max(edges, dim=1).values
+        packed_edges = torch.stack([senders, receivers], dim=1)
+        # remove duplicates and unpack
+        unique_edges = torch.unique(packed_edges, dim=0)
+        senders, receivers = unique_edges[:, 0], unique_edges[:, 1]
+        # create two-way connectivity
+        return torch.stack([torch.cat((senders, receivers), dim=0), torch.cat((receivers, senders), dim=0)], dim=0)
+
+    def tetra_to_edges(self, faces: torch.Tensor) -> torch.Tensor:
+        """Computes mesh edges from triangles."""
+        # collect edges from tertahedra
+        edges = torch.vstack((faces[:, 0:2],
+                            faces[:, 1:3],
+                            faces[:, 2:4],
+                            torch.hstack((faces[:, 3].unsqueeze(dim=-1),
+                                            faces[:, 0].unsqueeze(dim=-1)))
+                            ))
         receivers = torch.min(edges, dim=1).values
         senders = torch.max(edges, dim=1).values
         packed_edges = torch.stack([senders, receivers], dim=1)
@@ -197,7 +205,12 @@ class MeshDataset(Dataset):
                 x = torch.cat((v_0, node_type_one_hot),dim=-1).type(torch.float)
 
                 # get edge indices in COO format
-                edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
+                if (self.dim == 2):
+                    edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
+                elif (self.dim == 3):
+                    edge_index = self.tetra_to_edges(torch.Tensor(mesh.cells[0].data)).long()
+                else:
+                    raise ValueError("The dimension must be either 2 or 3.")
 
                 # get edge attributes
                 u_i = mesh.points[edge_index[0]][:,:self.dim]
