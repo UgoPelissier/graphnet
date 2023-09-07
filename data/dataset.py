@@ -162,7 +162,7 @@ class MeshDataset(Dataset):
         with alive_bar(total=len(self.processed_file_names)) as bar:
             for data in self.raw_file_names:
                 # read vtu file
-                mesh = meshio.read(osp.join(self.raw_dir, 'sol', data))
+                mesh = meshio.read(osp.join(self.raw_dir, data))
 
                 # node type
                 node_type = torch.zeros(mesh.points.shape[0])
@@ -210,9 +210,9 @@ class MeshDataset(Dataset):
 
                 # node outputs, for training (velocity)
                 if self.dim == 2:
-                    v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, 'sol', data), 'u'), cell2point(osp.join(self.raw_dir, 'sol', data), 'v'))).transpose())
+                    v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'))).transpose())
                 elif self.dim == 3:
-                    v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, 'sol', data), 'u'), cell2point(osp.join(self.raw_dir, 'sol', data), 'v'), cell2point(osp.join(self.raw_dir, 'sol', data), 'w'))).transpose())
+                    v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'), cell2point(osp.join(self.raw_dir, data), 'w'))).transpose())
                 else:
                     raise ValueError("The dimension must be either 2 or 3.")
                 y = v.type(torch.float)
