@@ -171,10 +171,10 @@ class MeshDataset(Dataset):
                         if (self.dim == 2):
                             node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
                         elif (self.dim==3):
-                            if (mesh.cell_data['Label'][1][i] == 31) or (mesh.cell_data['Label'][1][i] == 32):
-                                node_type[mesh.cells[1].data[i,j]] = 3
+                            if (mesh.cell_data['Label'][1][i] < 5):
+                                node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 1
                             else:
-                                node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
+                                node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 2
                         else:
                             raise ValueError("The dimension must be either 2 or 3.")
 
