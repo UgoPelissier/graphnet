@@ -36,6 +36,11 @@ Last step is to move the `stokes2` and `stokes3` folders inside the `data` folde
             ├── cad_000.vtu
             :
             └── cad_500.vtu
+    ├── stokes3adapt
+        └── raw
+            ├── cad_000.vtu
+            :
+            └── cad_500.vtu
     ├── datamodule.py
     └── dataset.py
 ├── model
