@@ -3,13 +3,13 @@ seed_everything: 42
 trainer:
   accelerator: gpu
   strategy: auto
-  devices: 2
+  devices: 2 # TODO: change to number of GPUs
   num_nodes: 1
   precision: 32-true
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      save_dir: /home/eleve05/adaptnet/graphnet/
+      save_dir: /home/eleve05/adaptnet/graphnet/ # TODO: change to path to graphnet
       name: logs/
       version: null
       log_graph: false
@@ -66,11 +66,11 @@ trainer:
   reload_dataloaders_every_n_epochs: 0
   default_root_dir: null
 model:
-  dir: /home/eleve05/adaptnet/
-  wdir: /home/eleve05/adaptnet/graphnet/
-  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/
-  logs: /home/eleve05/adaptnet/graphnet/logs/
-  dim: 3
+  dir: /home/eleve05/adaptnet/ # TODO: change to path to adaptnet
+  wdir: /home/eleve05/adaptnet/graphnet/ # TODO: change to path to graphnet
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
+  logs: /home/eleve05/adaptnet/graphnet/logs/ # TODO: change to path to meshnet/logs
+  dim: 3 # TODO: change to data dimension: 2 or 3
   num_layers: 15
   hidden_dim: 128
   optimizer:
@@ -90,8 +90,8 @@ model:
       fused: null
   lr_scheduler: null
 data:
-  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/
-  dim: 3
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
+  dim: 3 # TODO: change to data dimension: 2 or 3
   val_size: 0.15
   test_size: 0.1
   u_0: 1.0
