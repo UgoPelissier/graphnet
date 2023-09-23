@@ -3,13 +3,13 @@ seed_everything: 42
 trainer:
   accelerator: gpu
   strategy: auto
-  devices: 1
+  devices: 2 # TODO: change to number of GPUs
   num_nodes: 1
   precision: 32-true
   logger:
     class_path: lightning.pytorch.loggers.TensorBoardLogger
     init_args:
-      save_dir: /data/users/upelissier/30-Code/graphnet/
+      save_dir: /home/eleve05/adaptnet/graphnet/ # TODO: change to path to graphnet
       name: logs/
       version: null
       log_graph: false
@@ -34,7 +34,7 @@ trainer:
         processing_speed: grey82
         metrics: grey82
   fast_dev_run: false
-  max_epochs: 1000
+  max_epochs: 5000
   min_epochs: null
   max_steps: -1
   min_steps: null
@@ -66,15 +66,13 @@ trainer:
   reload_dataloaders_every_n_epochs: 0
   default_root_dir: null
 model:
-  dir: /data/users/upelissier/30-Code/
-  wdir: /home/upelissier/30-Code/graphnet/
-  data_dir: /data/users/upelissier/30-Code/graphnet/data/stokes/
-  logs: /data/users/upelissier/30-Code/graphnet/logs/
+  dir: /home/eleve05/adaptnet/ # TODO: change to path to adaptnet
+  wdir: /home/eleve05/adaptnet/graphnet/ # TODO: change to path to graphnet
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
+  logs: /home/eleve05/adaptnet/graphnet/logs/ # TODO: change to path to meshnet/logs
+  dim: 3 # TODO: change to data dimension: 2 or 3
   num_layers: 15
-  input_dim_node: 7
-  input_dim_edge: 3
   hidden_dim: 128
-  output_dim: 2
   optimizer:
     class_path: torch.optim.AdamW
     init_args:
@@ -92,11 +90,13 @@ model:
       fused: null
   lr_scheduler: null
 data:
-  data_dir: /data/users/upelissier/30-Code/graphnet/data/stokes/
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
+  dim: 3 # TODO: change to data dimension: 2 or 3
   val_size: 0.15
   test_size: 0.1
   u_0: 1.0
   v_0: 0.0
+  w_0: 0.0
   batch_size_train: 1
   batch_size_valid: 1
   batch_size_test: 1
