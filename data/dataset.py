@@ -154,74 +154,79 @@ class MeshDataset(Dataset):
         torch.save(self.mean_vec_y, osp.join(save_dir, 'mean_vec_y.pt'))
         torch.save(self.std_vec_y, osp.join(save_dir, 'std_vec_y.pt'))
 
+    def process_file(
+            self,
+            name: str
+    ) -> None:
+        # read vtu file
+        mesh = meshio.read(osp.join(self.raw_dir, name))
+
+        # node type
+        node_type = torch.zeros(mesh.points.shape[0])
+        for i in range(mesh.cells[1].data.shape[0]):
+            for j in range(mesh.cells[1].data.shape[1]):
+                if (self.dim == 2):
+                    node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
+                elif (self.dim==3):
+                    if (mesh.cell_data['Label'][1][i] < 5):
+                        node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 1
+                    else:
+                        node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 2
+                else:
+                    raise ValueError("The dimension must be either 2 or 3.")
+
+        # get initial velocity
+        v_0 = torch.zeros(mesh.points.shape[0], self.dim)
+        mask = (node_type.long())==torch.tensor(NodeType.INFLOW)
+        if (self.dim == 2):
+            v_0[mask] = torch.Tensor([self.u_0, self.v_0])
+        elif (self.dim == 3):
+            v_0[mask] = torch.Tensor([self.u_0, self.v_0, self.w_0])
+        else:
+            raise ValueError("The dimension must be either 2 or 3.")
+
+        node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
+
+        # get features
+        x = torch.cat((v_0, node_type_one_hot),dim=-1).type(torch.float)
+
+        # get edge indices in COO format
+        if (self.dim == 2):
+            edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
+        elif (self.dim == 3):
+            edge_index = self.tetra_to_edges(torch.Tensor(mesh.cells[0].data)).long()
+        else:
+            raise ValueError("The dimension must be either 2 or 3.")
+
+        # get edge attributes
+        u_i = mesh.points[edge_index[0]][:,:self.dim]
+        u_j = mesh.points[edge_index[1]][:,:self.dim]
+        u_ij = torch.Tensor(u_i - u_j)
+        u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
+        edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
+
+        # node outputs, for training (velocity)
+        if self.dim == 2:
+            v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, name), 'u'), cell2point(osp.join(self.raw_dir, name), 'v'))).transpose())
+        elif self.dim == 3:
+            v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, name), 'u'), cell2point(osp.join(self.raw_dir, name), 'v'), cell2point(osp.join(self.raw_dir, name), 'w'))).transpose())
+        else:
+            raise ValueError("The dimension must be either 2 or 3.")
+        y = v.type(torch.float)
+
+        self.update_stats(x, edge_attr, y)
+
+        torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=torch.Tensor(mesh.cells[0].data), mesh_pos=torch.Tensor(mesh.points), n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0], v_0=v_0, name=name[:-4]),
+                    osp.join(self.processed_dir, self.split, f'{name[:-4]}.pt'))
+
     def process(self) -> None:
         """Process the dataset."""
         os.makedirs(os.path.join(self.processed_dir, self.split), exist_ok=True)
 
         print(f'{self.split} dataset')
         with alive_bar(total=len(self.processed_file_names)) as bar:
-            for data in self.raw_file_names:
-                # read vtu file
-                mesh = meshio.read(osp.join(self.raw_dir, data))
-
-                # node type
-                node_type = torch.zeros(mesh.points.shape[0])
-                for i in range(mesh.cells[1].data.shape[0]):
-                    for j in range(mesh.cells[1].data.shape[1]):
-                        if (self.dim == 2):
-                            node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
-                        elif (self.dim==3):
-                            if (mesh.cell_data['Label'][1][i] < 5):
-                                node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 1
-                            else:
-                                node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 2
-                        else:
-                            raise ValueError("The dimension must be either 2 or 3.")
-
-                # get initial velocity
-                v_0 = torch.zeros(mesh.points.shape[0], self.dim)
-                mask = (node_type.long())==torch.tensor(NodeType.INFLOW)
-                if (self.dim == 2):
-                    v_0[mask] = torch.Tensor([self.u_0, self.v_0])
-                elif (self.dim == 3):
-                    v_0[mask] = torch.Tensor([self.u_0, self.v_0, self.w_0])
-                else:
-                    raise ValueError("The dimension must be either 2 or 3.")
-
-                node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
-
-                # get features
-                x = torch.cat((v_0, node_type_one_hot),dim=-1).type(torch.float)
-
-                # get edge indices in COO format
-                if (self.dim == 2):
-                    edge_index = self.triangles_to_edges(torch.Tensor(mesh.cells[0].data)).long()
-                elif (self.dim == 3):
-                    edge_index = self.tetra_to_edges(torch.Tensor(mesh.cells[0].data)).long()
-                else:
-                    raise ValueError("The dimension must be either 2 or 3.")
-
-                # get edge attributes
-                u_i = mesh.points[edge_index[0]][:,:self.dim]
-                u_j = mesh.points[edge_index[1]][:,:self.dim]
-                u_ij = torch.Tensor(u_i - u_j)
-                u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
-                edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
-
-                # node outputs, for training (velocity)
-                if self.dim == 2:
-                    v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'))).transpose())
-                elif self.dim == 3:
-                    v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, data), 'u'), cell2point(osp.join(self.raw_dir, data), 'v'), cell2point(osp.join(self.raw_dir, data), 'w'))).transpose())
-                else:
-                    raise ValueError("The dimension must be either 2 or 3.")
-                y = v.type(torch.float)
-
-                self.update_stats(x, edge_attr, y)
-
-                torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=torch.Tensor(mesh.cells[0].data), mesh_pos=torch.Tensor(mesh.points), n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0], v_0=v_0, name=data[:-4]),
-                            osp.join(self.processed_dir, self.split, f'{data[:-4]}.pt'))
-                
+            for name in self.raw_file_names:
+                self.process_file(name)
                 bar()
                     
         self.save_stats()
