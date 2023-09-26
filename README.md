@@ -17,9 +17,9 @@ The data is available on the Safran GitLab. In a different folder than the one c
 ```bash
 git clone https://github.com/UgoPelissier/dataset
 ```
-And follow the instructions in the README.md file. This will create `vtu` folders inside `stokes2`, `stokes3` and `stokes3adapt folders containing the CAD models.
+And follow the instructions in the README.md file. This will create `vtu` folders inside `stokes2`, `stokes3` and `stokes3adapt` folders containing the CAD models.
 
-Last step is to move the `stokes2`, `stokes3` and `stokes3adapt folders inside the `data` folder of this graphnet repository. The final structure should look like this:
+Last step is to move the `stokes2`, `stokes3` and `stokes3adapt` folders inside the `data` folder of this graphnet repository. The final structure should look like this:
 
 ```
 ├── callbacks
