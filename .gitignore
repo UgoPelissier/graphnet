@@ -3,4 +3,6 @@ stokes
 raw
 processed
 indices
-logs
+test
+events.out*
+hparams.yaml
