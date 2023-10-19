@@ -1,5 +1,6 @@
 # lightning.pytorch==2.0.2
 name: dataset2
+pred: velocity
 seed_everything: 42
 trainer:
   accelerator: gpu
