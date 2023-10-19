@@ -68,7 +68,7 @@ trainer:
 model:
   dir: /home/eleve05/adaptnet/ # TODO: change to path to adaptnet
   wdir: /home/eleve05/adaptnet/graphnet/ # TODO: change to path to graphnet
-  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3adapt/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
   logs: /home/eleve05/adaptnet/graphnet/logs/ # TODO: change to path to meshnet/logs
   dim: 3 # TODO: change to data dimension: 2 or 3
   num_layers: 15
@@ -90,7 +90,7 @@ model:
       fused: null
   lr_scheduler: null
 data:
-  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
+  data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3adapt/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
   dim: 3 # TODO: change to data dimension: 2 or 3
   val_size: 0.15
   test_size: 0.1
