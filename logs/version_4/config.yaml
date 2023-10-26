@@ -1,5 +1,5 @@
 # lightning.pytorch==2.0.2
-name: dataset2s
+name: dataset2
 pred: adapt_metric
 seed_everything: 42
 trainer:
