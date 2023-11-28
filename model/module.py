@@ -2,6 +2,7 @@ from typing import Optional, List, Tuple, Union
 import os
 import os.path as osp
 import meshio
+import shutil
 
 from graphnet.utils.stats import load_stats, normalize, unnormalize
 from graphnet.utils.utils import get_next_version
@@ -174,8 +175,7 @@ class GraphNet(pl.LightningModule):
     def test_step(self, batch: Data, batch_idx: int) -> None:
         """Test step of the model."""
         os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0]), exist_ok=True)
-        os.makedirs(os.path.join(self.logs, self.version, 'test', batch.name[0], 'vtu'), exist_ok=True)
-
+        
         pred = self(batch, split='train')
         loss = self.loss(pred, batch, split='train')
         self.log('test/loss', loss, on_step=False, on_epoch=True, prog_bar=True, logger=True)
@@ -190,8 +190,7 @@ class GraphNet(pl.LightningModule):
             'u_0': batch.v_0[:,0].cpu().numpy(),
             'v_0': batch.v_0[:,1].cpu().numpy(),
             'm': batch.y.cpu().numpy(),
-            'm_pred': pred.detach().cpu().numpy(),
-            'm_error': (pred-batch.y).detach().cpu().numpy()
+            'm_pred': pred.detach().cpu().numpy()
         }
 
         mesh = meshio.Mesh(
@@ -199,12 +198,11 @@ class GraphNet(pl.LightningModule):
             cells={"tetra": batch.cells.cpu().numpy()},
             point_data=point_data
         )
-        mesh.write(osp.join(self.logs, self.version, 'test', batch.name[0], 'vtu', f'{batch.name[0]}_pred.vtu'), binary=False)
+        mesh.write(osp.join(self.logs, self.version, 'test', batch.name[0], f'{batch.name[0]}_pred.vtu'), binary=False)
 
-        os.makedirs(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), exist_ok=True)
-
-        self.write_metric(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y, 'm')
-        self.write_metric(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred, 'm_pred')
+        self.write_metric(osp.join(self.logs, self.version, 'test', batch.name[0]), batch.y, 'm')
+        self.write_metric(osp.join(self.logs, self.version, 'test', batch.name[0]), pred, 'm_pred')
+        shutil.copy(osp.join(self.data_dir, 'mesh', f'{batch.name[0]}.msh'), osp.join(self.logs, self.version, 'test', batch.name[0], f'{batch.name[0]}.msh'))
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
