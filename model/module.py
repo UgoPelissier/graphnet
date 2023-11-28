@@ -203,8 +203,8 @@ class GraphNet(pl.LightningModule):
 
         os.makedirs(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), exist_ok=True)
 
-        self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y, 'm')
-        self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred, 'm_pred')
+        self.write_metric(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y, 'm')
+        self.write_metric(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred, 'm_pred')
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
@@ -239,3 +239,13 @@ class GraphNet(pl.LightningModule):
                         f.write(f'\t{field[i]}\t{field[i+1]}\t{field[i+2]}\t{field[i+3]}\n')
                 else:
                     f.write(f'\t{field[i]}\t{field[i+1]}\t{field[i+2]}\t{field[i+3]}\t{field[i+4]}\n')
+
+    def write_metric(self, path:str, field: torch.Tensor, name: str) -> None:
+        with open(osp.join(path, f'{name}.sol'), 'w') as f:
+            f.write('MeshVersionFormatted 1\n\n')
+            f.write('Dimension 3\n\n')
+            f.write('SolAtVertices\n')
+            f.write(f'{len(field)}\n')
+            f.write('1 1\n')
+            for i in range(len(field)):
+                f.write(f'{field[i]}\n')
