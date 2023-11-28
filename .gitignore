@@ -2,6 +2,7 @@ __pycache__
 stokes
 raw
 processed
+mesh
 old
 indices
 test
