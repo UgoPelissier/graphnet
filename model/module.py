@@ -186,33 +186,13 @@ class GraphNet(pl.LightningModule):
             std=self.std_vec_y_train
         )
 
-        ########################################
-
         point_data={
             'u_0': batch.v_0[:,0].cpu().numpy(),
             'v_0': batch.v_0[:,1].cpu().numpy(),
             'm': batch.y.cpu().numpy(),
-            'm_pred': pred.detach().cpu().numpy()
+            'm_pred': pred.detach().cpu().numpy(),
+            'm_error': (pred-batch.y).detach().cpu().numpy()
         }
-
-        ########################################
-
-        # point_data={
-        #     'u_0': batch.v_0[:,0].cpu().numpy(),
-        #     'v_0': batch.v_0[:,1].cpu().numpy(),
-        #     'u': batch.y[:,0].cpu().numpy(),
-        #     'v': batch.y[:,1].cpu().numpy(),
-        #     'u_pred': pred[:,0].detach().cpu().numpy(),
-        #     'v_pred': pred[:,1].detach().cpu().numpy(),
-        #     'u_error': (pred[:,0]-batch.y[:,0]).detach().cpu().numpy(),
-        #     'v_error': (pred[:,1]-batch.y[:,1]).detach().cpu().numpy()
-        # }
-
-        # if (self.dim==3):
-        #     point_data['w_0'] = batch.v_0[:,2].cpu().numpy()
-        #     point_data['w'] = batch.y[:,2].cpu().numpy()
-        #     point_data['w_pred'] = pred[:,2].detach().cpu().numpy()
-        #     point_data['w_error'] = (pred[:,2]-batch.y[:,2]).detach().cpu().numpy()
 
         mesh = meshio.Mesh(
             points=batch.mesh_pos.cpu().numpy(),
@@ -223,21 +203,8 @@ class GraphNet(pl.LightningModule):
 
         os.makedirs(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), exist_ok=True)
 
-        ########################################
-
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y, 'm')
         self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred, 'm_pred')
-
-        ########################################
-        
-        # self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y[:,0], 'u')
-        # self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y[:,1], 'v')
-        # self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,0], 'u_pred')
-        # self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,1], 'v_pred')
-
-        # if (self.dim==3):
-        #     self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), batch.y[:,2], 'w')
-        #     self.write_field(osp.join(self.logs, self.version, 'test', batch.name[0], 'field'), pred[:,2], 'w_pred')
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
