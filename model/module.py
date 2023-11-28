@@ -248,4 +248,4 @@ class GraphNet(pl.LightningModule):
             f.write(f'{len(field)}\n')
             f.write('1 1\n')
             for i in range(len(field)):
-                f.write(f'{field[i]}\n')
+                f.write(f'{field[i].item()}\n')
