@@ -202,7 +202,8 @@ class GraphNet(pl.LightningModule):
 
         self.write_metric(osp.join(self.logs, self.version, 'test', batch.name[0]), batch.y, 'm')
         self.write_metric(osp.join(self.logs, self.version, 'test', batch.name[0]), pred, 'm_pred')
-        shutil.copy(osp.join(self.data_dir, 'mesh', f'{batch.name[0]}.msh'), osp.join(self.logs, self.version, 'test', batch.name[0], f'{batch.name[0]}.msh'))
+        shutil.copy(osp.join(self.data_dir, 'msh', f'{batch.name[0]}.msh'), osp.join(self.logs, self.version, 'test', batch.name[0], f'{batch.name[0]}.msh'))
+        shutil.copy(osp.join(self.data_dir, 'mesh', f'{batch.name[0]}.mesh'), osp.join(self.logs, self.version, 'test', batch.name[0], f'{batch.name[0]}.mesh'))
 
     def configure_optimizers(self) -> Union[List[Optimizer], Tuple[List[Optimizer], List[Union[_TORCH_LRSCHEDULER, ReduceLROnPlateau]]]]:
         """Configure the optimizer and the learning rate scheduler."""
