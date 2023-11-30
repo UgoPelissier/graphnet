@@ -11,7 +11,7 @@ conda activate graphnet
 ```
 
 ### Download data
-The dataset is available. In a different folder than the one containing this repository, run:
+The dataset is available. If you have not downloaded yet for Meshnet, in a different folder than the one containing this repository, run:
 ```bash
 git clone https://github.com/UgoPelissier/dataset
 ```
