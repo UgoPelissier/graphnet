@@ -50,11 +50,9 @@ Last step is to move the `stokes2`, `stokes3` and `stokes3adapt` folders inside 
 ```
 
 ### Train the model
-To set the parameters, you can either change them inside the `main.py` file and train the model by running:
-```bash
-python main.py fit
-```
-or you can change them in the `configs/config.yaml` file and train the model by running:
+Parameters setting is done in the `configs/config.yaml` file. Check, and change if needed, the parameters marked with `# TODO` comments.
+
+Train the model by running:
 ```bash
 python main.py fit -c configs/config.yaml
 ```
@@ -64,7 +62,7 @@ You can get help on the command line arguments by running:
 python main.py fit --help
 ```
 
-In both cases, it will create a new folder in the `logs/` folder containing the checkpoints of the model and a configuration file containing the parameters used for the training, that you can use later if you want.
+It will create a new folder in the `logs/` folder containing the checkpoints of the model and a configuration file containing the parameters used for the training, that you can use later if you want.
 
 ### Evaluate the model
 To evaluate the model training, run:
