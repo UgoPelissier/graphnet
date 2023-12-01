@@ -6,7 +6,7 @@ Graphnet is a Graph Neural Network (GNN) model for the prediction of the station
 
 ### Conda environment
 ```bash
-mamba env create -f utils/envs/graphnet_no_builds.yml
+conda env create -f utils/envs/graphnet_no_builds.yml
 conda activate graphnet
 ```
 
