@@ -61,8 +61,8 @@ class MeshDataset(Dataset):
         self.std_vec_edge = torch.zeros(self.vec_edge_size)
 
         # mean and std of the output parameters are calculated
-        self.mean_vec_y = torch.zeros(1)
-        self.std_vec_y = torch.zeros(1)
+        self.mean_vec_y = torch.zeros(6)
+        self.std_vec_y = torch.zeros(6)
 
         # define counters used in normalization
         self.num_accs_x  =  0
@@ -204,18 +204,16 @@ class MeshDataset(Dataset):
         u_ij = torch.Tensor(u_i - u_j)
         u_ij_norm = torch.norm(u_ij, p=2, dim=1, keepdim=True)
         edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
-
-        # # node outputs, for training (velocity)
-        # if self.dim == 2:
-        #     v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, name), 'u'), cell2point(osp.join(self.raw_dir, name), 'v'))).transpose())
-        # elif self.dim == 3:
-        #     v = torch.Tensor(np.stack((cell2point(osp.join(self.raw_dir, name), 'u'), cell2point(osp.join(self.raw_dir, name), 'v'), cell2point(osp.join(self.raw_dir, name), 'w'))).transpose())
-            
-        # else:
-        #     raise ValueError("The dimension must be either 2 or 3.")
         
-        v = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm')).transpose())
-        y = v.type(torch.float)
+        # m11 m21 m22 m31 m32 m33
+        m11 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm11')).transpose())
+        m21 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm21')).transpose())
+        m22 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm22')).transpose())
+        m31 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm31')).transpose())
+        m32 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm32')).transpose())
+        m33 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm33')).transpose())
+
+        y = torch.vstack((m11, m21, m22, m31, m32, m33)).T.type(torch.float)
 
         self.update_stats(x, edge_attr, y)
 
