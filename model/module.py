@@ -80,7 +80,7 @@ class GraphNet(pl.LightningModule):
                                   ReLU(),
                                   Linear(hidden_dim, hidden_dim),
                                   ReLU(),
-                                  Linear(hidden_dim, 1))
+                                  Linear(hidden_dim, 6))
 
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -143,10 +143,10 @@ class GraphNet(pl.LightningModule):
             raise ValueError(f'Invalid split: {split}')
 
         # find sum of square errors
-        error = torch.sum((labels.unsqueeze(dim=-1)-pred)**2, dim=1)
+        error = torch.sum((labels-pred)**2, dim=1)
 
         # root and mean the errors for the nodes we calculate loss for
-        loss= torch.sqrt(torch.mean(error[loss_mask]))
+        loss = torch.sqrt(torch.mean(error[loss_mask]))
         
         return loss
 
