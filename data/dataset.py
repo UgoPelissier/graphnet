@@ -61,8 +61,8 @@ class MeshDataset(Dataset):
         self.std_vec_edge = torch.zeros(self.vec_edge_size)
 
         # mean and std of the output parameters are calculated
-        self.mean_vec_y = torch.zeros(6)
-        self.std_vec_y = torch.zeros(6)
+        self.mean_vec_y = torch.zeros(1)
+        self.std_vec_y = torch.zeros(1)
 
         # define counters used in normalization
         self.num_accs_x  =  0
@@ -207,13 +207,8 @@ class MeshDataset(Dataset):
         
         # m11 m21 m22 m31 m32 m33
         m11 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm11')).transpose())
-        m21 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm21')).transpose())
-        m22 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm22')).transpose())
-        m31 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm31')).transpose())
-        m32 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm32')).transpose())
-        m33 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm33')).transpose())
 
-        y = torch.vstack((m11, m21, m22, m31, m32, m33)).T.type(torch.float)
+        y = m11.type(torch.float)
 
         self.update_stats(x, edge_attr, y)
 
