@@ -72,9 +72,11 @@ class GraphNet(pl.LightningModule):
         for _ in range(self.num_layers):
             self.processor.append(processor_layer(hidden_dim,hidden_dim))
 
+        # global feature
+        self.global_feature = Linear((self.num_layers+1)*hidden_dim, 1024)
 
         # decoder: only for node embeddings
-        self.decoder = Sequential(Linear(hidden_dim, hidden_dim),
+        self.decoder = Sequential(Linear(1024+(self.num_layers+1)*hidden_dim, hidden_dim),
                                   ReLU(),
                                   Linear(hidden_dim, hidden_dim),
                                   ReLU(),
@@ -121,16 +123,26 @@ class GraphNet(pl.LightningModule):
         edge_attr = self.edge_encoder(edge_attr) # output shape is the specified hidden dimension
 
         # step 2: perform message passing with latent node/edge embeddings
+        v = x
         for i in range(self.num_layers):
             x, edge_attr = self.processor[i](x, edge_index, edge_attr)
+            v = torch.cat((v,x),dim=1)
 
-        # step 3: decode latent node embeddings into physical quantities of interest
-        return self.decoder(x)
+        # step 3: max pooling over all nodes to obtain a graph embedding
+        w = v.max(dim=0, keepdim=True)[0]
+
+        # step 4: global feature mlp
+        w = self.global_feature(w)
+        w = w.repeat(x.shape[0],1)
+        w = torch.cat((w,v),dim=1)
+
+        # step 5: decode latent node embeddings into physical quantities of interest
+        return self.decoder(w)
     
     def loss(self, pred: torch.Tensor, inputs: Data, split: str) -> torch.Tensor:
         """Calculate the loss for the given prediction and inputs."""
         # get the loss mask for the nodes of the types we calculate loss for
-        loss_mask = (torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.NORMAL)) + (torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.OUTFLOW)) + (torch.argmax(inputs.x[:,2:],dim=1)==torch.tensor(NodeType.OBSTACLE))    
+        loss_mask = (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.NORMAL)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.OUTFLOW)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.OBSTACLE))
 
         # normalize labels with dataset statistics
         if split == 'train':
@@ -189,8 +201,8 @@ class GraphNet(pl.LightningModule):
         point_data={
             'u_0': batch.v_0[:,0].cpu().numpy(),
             'v_0': batch.v_0[:,1].cpu().numpy(),
-            'm': batch.y.cpu().numpy(),
-            'm_pred': pred.detach().cpu().numpy()
+            'm11': batch.y.cpu().numpy(),
+            'm11_pred': pred.detach().cpu().numpy()
         }
 
         mesh = meshio.Mesh(
