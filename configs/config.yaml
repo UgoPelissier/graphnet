@@ -3,7 +3,7 @@ seed_everything: 42
 trainer:
   accelerator: gpu
   strategy: auto
-  devices: 2 # TODO: change to number of GPUs
+  devices: 1 # TODO: change to number of GPUs
   num_nodes: 1
   precision: 32-true
   logger:
@@ -71,7 +71,7 @@ model:
   data_dir: /home/eleve05/adaptnet/graphnet/data/stokes3adapt/ # TODO: change to path to stokes2, stokes3 or stokes3adapt
   logs: /home/eleve05/adaptnet/graphnet/logs/ # TODO: change to path to meshnet/logs
   dim: 3 # TODO: change to data dimension: 2 or 3
-  num_layers: 15
+  num_layers: 5
   hidden_dim: 128
   optimizer:
     class_path: torch.optim.AdamW
@@ -94,10 +94,11 @@ data:
   dim: 3 # TODO: change to data dimension: 2 or 3
   val_size: 0.15
   test_size: 0.1
+  m: 'm33' # m11 m21 m22 m31 m32 m33
   u_0: 1.0
   v_0: 0.0
   w_0: 0.0
-  batch_size_train: 2
-  batch_size_valid: 1
+  batch_size_train: 4
+  batch_size_valid: 2
   batch_size_test: 1
 ckpt_path: null
