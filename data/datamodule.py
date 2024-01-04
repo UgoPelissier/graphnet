@@ -14,6 +14,7 @@ class MeshDataModule(pl.LightningDataModule):
             dim: int,
             val_size: float,
             test_size: float,
+            m: str,
             u_0: float,
             v_0: float,
             w_0: float,
@@ -29,9 +30,9 @@ class MeshDataModule(pl.LightningDataModule):
         # Define the indices
         train_index, val_index, test_index = train_val_test_split(path=data_dir, n=len(os.listdir(osp.join(data_dir, 'raw'))), val_size=val_size, test_size=test_size)
         
-        self.train_ds = MeshDataset(data_dir, dim, u_0, v_0, w_0, split="train", indices=train_index)
-        self.valid_ds = MeshDataset(data_dir, dim, u_0, v_0, w_0, split="valid", indices=val_index)
-        self.test_ds = MeshDataset(data_dir, dim, u_0, v_0, w_0, split="test", indices=test_index)
+        self.train_ds = MeshDataset(data_dir, dim, m, u_0, v_0, w_0, split="train", indices=train_index)
+        self.valid_ds = MeshDataset(data_dir, dim, m, u_0, v_0, w_0, split="valid", indices=val_index)
+        self.test_ds = MeshDataset(data_dir, dim, m, u_0, v_0, w_0, split="test", indices=test_index)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size_train, shuffle=True, num_workers=8)

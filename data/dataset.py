@@ -32,6 +32,7 @@ class MeshDataset(Dataset):
             self,
             data_dir: str,
             dim: int,
+            m: str,
             u_0: float,
             v_0: float,
             w_0: float,
@@ -42,6 +43,7 @@ class MeshDataset(Dataset):
     ) -> None:
         self.data_dir = data_dir
         self.dim = dim
+        self.m = m
         self.u_0 = u_0
         self.v_0 = v_0
         self.w_0 = w_0
@@ -188,7 +190,7 @@ class MeshDataset(Dataset):
         node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
 
         # get features
-        x = torch.cat((v_0, node_type_one_hot),dim=-1).type(torch.float)
+        x = torch.cat((node_type_one_hot, torch.Tensor(mesh.points)),dim=-1).type(torch.float)
 
         # get edge indices in COO format
         if (self.dim == 2):
@@ -206,9 +208,7 @@ class MeshDataset(Dataset):
         edge_attr = torch.cat((u_ij, u_ij_norm),dim=-1).type(torch.float)
         
         # m11 m21 m22 m31 m32 m33
-        m11 = torch.Tensor((cell2point(osp.join(self.raw_dir, name), 'm11')).transpose())
-
-        y = m11.type(torch.float)
+        y = (torch.Tensor((cell2point(osp.join(self.raw_dir, name), self.m)).transpose())).type(torch.float)
 
         self.update_stats(x, edge_attr, y)
 
