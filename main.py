@@ -32,6 +32,7 @@ class MyLightningCLI(LightningCLI):
                 "data.dim": 3, # TODO: Dimension of the problem
                 "data.val_size": 0.15, # Validation size
                 "data.test_size": 0.1, # Test size
+                "data.m": "m11", # TODO: metric component to predict
                 "data.u_0": 1.0, # Boundary condition
                 "data.v_0": 0.0, # Boundary condition
                 "data.w_0": 0.0, # Boundary condition
