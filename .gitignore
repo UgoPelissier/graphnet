@@ -1,5 +1,6 @@
 __pycache__
 stokes
+elasticity
 raw
 processed
 mesh
@@ -9,3 +10,9 @@ indices
 test
 events.out*
 hparams.yaml
+m11
+m21
+m22
+m31
+m32
+m33
