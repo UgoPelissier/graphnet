@@ -33,9 +33,6 @@ class MyLightningCLI(LightningCLI):
                 "data.val_size": 0.15, # Validation size
                 "data.test_size": 0.1, # Test size
                 "data.m": "m11", # TODO: metric component to predict
-                "data.u_0": 1.0, # Boundary condition
-                "data.v_0": 0.0, # Boundary condition
-                "data.w_0": 0.0, # Boundary condition
                 "data.batch_size_train": 1, # Batch size
                 "data.batch_size_valid": 1, # Batch size
                 "data.batch_size_test": 1, # Batch size
