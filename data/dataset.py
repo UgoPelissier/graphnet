@@ -25,6 +25,12 @@ class NodeType(enum.IntEnum):
     WALL_BOUNDARY = 3
     OBSTACLE = 4
     SIZE = 5
+    
+    # NORMAL = 0
+    # WALLS = 1
+    # LOAD = 2
+    # BORDER = 3
+    # SIZE = 4
 
 
 class MeshDataset(Dataset):
@@ -33,9 +39,6 @@ class MeshDataset(Dataset):
             data_dir: str,
             dim: int,
             m: str,
-            u_0: float,
-            v_0: float,
-            w_0: float,
             split: str,
             indices: np.ndarray,
             transform: Optional[Callable] = None,
@@ -44,9 +47,6 @@ class MeshDataset(Dataset):
         self.data_dir = data_dir
         self.dim = dim
         self.m = m
-        self.u_0 = u_0
-        self.v_0 = v_0
-        self.w_0 = w_0
         self.split = split
         self.idx = indices
 
@@ -160,6 +160,8 @@ class MeshDataset(Dataset):
             self,
             name: str
     ) -> None:
+        print(f"Processing {name}")
+
         # read vtu file
         mesh = meshio.read(osp.join(self.raw_dir, name))
 
@@ -170,23 +172,9 @@ class MeshDataset(Dataset):
                 if (self.dim == 2):
                     node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
                 elif (self.dim==3):
-                    if (mesh.cell_data['Label'][1][i] < 5):
-                        node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 1
-                    else:
-                        node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 2
+                    node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 1
                 else:
                     raise ValueError("The dimension must be either 2 or 3.")
-
-        # get initial velocity
-        v_0 = torch.zeros(mesh.points.shape[0], self.dim)
-        mask = (node_type.long())==torch.tensor(NodeType.INFLOW)
-        if (self.dim == 2):
-            v_0[mask] = torch.Tensor([self.u_0, self.v_0])
-        elif (self.dim == 3):
-            v_0[mask] = torch.Tensor([self.u_0, self.v_0, self.w_0])
-        else:
-            raise ValueError("The dimension must be either 2 or 3.")
-
         node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
 
         # get features
@@ -212,7 +200,7 @@ class MeshDataset(Dataset):
 
         self.update_stats(x, edge_attr, y)
 
-        torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=torch.Tensor(mesh.cells[0].data), mesh_pos=torch.Tensor(mesh.points), n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0], v_0=v_0, name=name[:-4]),
+        torch.save(Data(x=x, edge_index=edge_index, edge_attr=edge_attr, y=y, cells=torch.Tensor(mesh.cells[0].data), mesh_pos=torch.Tensor(mesh.points), n_points=x.shape[0], n_edges=edge_index.shape[1], n_cells=mesh.cells[0].data.shape[0], name=name[:-4]),
                     osp.join(self.processed_dir, self.split, f'{name[:-4]}.pt'))
 
     def process(self) -> None:
