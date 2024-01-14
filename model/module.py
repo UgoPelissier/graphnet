@@ -143,7 +143,7 @@ class GraphNet(pl.LightningModule):
         """Calculate the loss for the given prediction and inputs."""
         # get the loss mask for the nodes of the types we calculate loss for
         loss_mask = (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.NORMAL)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.OBSTACLE)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.OUTFLOW))
-        # loss_mask = (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.NORMAL)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.LOAD)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.WALLS))
+        # loss_mask = (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.NORMAL)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.LOAD)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.BORDER)) + (torch.argmax(inputs.x[:,:NodeType.SIZE],dim=1)==torch.tensor(NodeType.WALL_BOUNDARY))
 
         # normalize labels with dataset statistics
         if split == 'train':

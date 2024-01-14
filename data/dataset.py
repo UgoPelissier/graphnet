@@ -27,7 +27,7 @@ class NodeType(enum.IntEnum):
     SIZE = 5
     
     # NORMAL = 0
-    # WALLS = 1
+    # WALL_BOUNDARY = 1
     # LOAD = 2
     # BORDER = 3
     # SIZE = 4
@@ -172,7 +172,10 @@ class MeshDataset(Dataset):
                 if (self.dim == 2):
                     node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i]
                 elif (self.dim==3):
-                    node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 1
+                    if (mesh.cell_data['Label'][1][i] > 4):
+                        node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] - 2
+                    else:
+                        node_type[mesh.cells[1].data[i,j]] = mesh.cell_data['Label'][1][i] -1
                 else:
                     raise ValueError("The dimension must be either 2 or 3.")
         node_type_one_hot = torch.nn.functional.one_hot(node_type.long(), num_classes=NodeType.SIZE)
