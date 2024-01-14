@@ -10,6 +10,7 @@ indices
 test
 events.out*
 hparams.yaml
+u3
 m11
 m21
 m22
