@@ -94,7 +94,7 @@ data:
   dim: 3 # TODO: change to data dimension: 2 or 3
   val_size: 0.15
   test_size: 0.1
-  m: 'u' # u v w m11 m21 m22 m31 m32 m33
+  m: 'v' # u v w m11 m21 m22 m31 m32 m33
   batch_size_train: 4
   batch_size_valid: 2
   batch_size_test: 1
