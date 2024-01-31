@@ -19,18 +19,18 @@ class NodeType(enum.IntEnum):
     MeshGraphNets study: 
     https://github.com/deepmind/deepmind-research/tree/master/meshgraphnets
     """
-    NORMAL = 0
-    INFLOW = 1
-    OUTFLOW = 2
-    WALL_BOUNDARY = 3
-    OBSTACLE = 4
-    SIZE = 5
-    
     # NORMAL = 0
-    # WALL_BOUNDARY = 1
-    # LOAD = 2
-    # BORDER = 3
-    # SIZE = 4
+    # INFLOW = 1
+    # OUTFLOW = 2
+    # WALL_BOUNDARY = 3
+    # OBSTACLE = 4
+    # SIZE = 5
+    
+    NORMAL = 0
+    WALL_BOUNDARY = 1
+    LOAD = 2
+    BORDER = 3
+    SIZE = 4
 
 
 class MeshDataset(Dataset):
